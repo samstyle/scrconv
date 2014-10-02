@@ -38,6 +38,10 @@ class MWin : public QMainWindow {
 		bool isPlaying;
 		void chaFrame();
 		QImage doConvert(QImage);
+
+		int cropX;
+		int cropY;
+
 	private slots:
 		void openFile();
 		void saveFile();
@@ -59,6 +63,7 @@ class MWin : public QMainWindow {
 		void chaZoom();
 		void chaMode();
 		void chaZoomMode();
+		void setCrop();
 };
 
 #endif // MAINWIN_H

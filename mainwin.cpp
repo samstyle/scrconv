@@ -24,6 +24,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 
 	isPlaying = false;
 	isGif = false;
+	curFrame = 0;
 
 	connect(ui.tbOpen,SIGNAL(clicked()),this,SLOT(openFile()));
 	connect(ui.tbSave,SIGNAL(clicked()),this,SLOT(saveFile()));
@@ -46,12 +47,20 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.sbRed,SIGNAL(valueChanged(int)),this,SLOT(convert()));
 	connect(ui.sbGreen,SIGNAL(valueChanged(int)),this,SLOT(convert()));
 	connect(ui.sbBlue,SIGNAL(valueChanged(int)),this,SLOT(convert()));
+//	connect(ui.tbCrop,SIGNAL(toggled(bool)),this,SLOT(setCrop()));
 
 	connect(ui.brightLevel,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetBrg()));
 	connect(ui.contrast,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetCon()));
 	connect(ui.sbBlue,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetB()));
 	connect(ui.sbRed,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetR()));
 	connect(ui.sbGreen,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetG()));
+
+	QString frm;
+	QList<QByteArray> sup = QImageReader::supportedImageFormats();
+	foreach(QByteArray f,sup) {
+	    frm.append(QString(f)).append(" ");
+	}
+	ui.statusbar->showMessage(QString("Qt %0 : %1").arg(qVersion()).arg(frm),0);
 }
 
 // reset levels
@@ -360,35 +369,36 @@ void MWin::openFile() {
 	if (isPlaying) playGif();
 	QString path = QFileDialog::getOpenFileName(this,"Open image","","Images (*.jpg *.jpeg *.png *.bmp *.gif)",0,QFileDialog::DontUseNativeDialog);
 	if (path.isEmpty()) return;
-	if (path.endsWith(".gif")) {
-		gif.clear();
-		QImageReader rd(path);
-		GIFrame frm;
-		while (rd.canRead()) {
-			frm.delay = rd.nextImageDelay();
-			frm.img = rd.read();
-			gif.append(frm);
-		}
-		isGif = true;
-		isPlaying = false;
+	QImageReader rd(path);
+	if (rd.canRead()) {
 		curFrame = 0;
-		img = gif.at(curFrame).img;
-	} else {
-		if (img.load(path)) {
+		if (rd.format() == "gif") {
+			gif.clear();
+			GIFrame frm;
+			while (rd.canRead()) {
+				frm.delay = rd.nextImageDelay();
+				frm.img = rd.read();
+				gif.append(frm);
+			}
+			isGif = true;
+			img = gif.at(curFrame).img;
+		} else {
+			img = rd.read();
 			ui.labSrc->dx = 0;
 			ui.labSrc->dy = 0;
 			isGif = false;
-		} else {
-			QMessageBox::critical(this,"Error","Fail to load image",QMessageBox::Ok);
 		}
+		isPlaying = false;
+//		ui.tbCrop->setChecked(false);
+		ui.tbPrev->setEnabled(isGif);
+		ui.tbNext->setEnabled(isGif);
+		ui.tbPlay->setEnabled(isGif);
+		ui.tbSaveAni->setEnabled(isGif);
+		ui.labFrame->setText(QString("%0 / %1").arg(curFrame + 1).arg(gif.size()));
+		chaZoomMode();
+	} else {
+		QMessageBox::critical(this,"Error","Fail to load image",QMessageBox::Ok);
 	}
-	curFrame = 0;
-	ui.tbPrev->setEnabled(isGif);
-	ui.tbNext->setEnabled(isGif);
-	ui.tbPlay->setEnabled(isGif);
-	ui.tbSaveAni->setEnabled(isGif);
-	ui.labFrame->setText(QString("%0 / %1").arg(curFrame + 1).arg(gif.size()));
-	chaZoomMode();
 }
 
 void MWin::saveFile() {
@@ -527,6 +537,9 @@ void MWin::movePic() {
 	ui.labSrc->setPixmap(QPixmap::fromImage(src));
 	ui.labSrc->blockWheel = (zoomMode != CONV_ZOOM);
 	convert();
+}
+
+void MWin::setCrop() {
 }
 
 int getGray(int lev, int brg, int cont) {
