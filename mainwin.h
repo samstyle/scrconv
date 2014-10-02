@@ -36,19 +36,22 @@ class MWin : public QMainWindow {
 		int convType;
 		bool isGif;
 		bool isPlaying;
-		void chaFrame();
 		QImage doConvert(QImage);
 
-		int cropX;
-		int cropY;
+//		int cropX;
+//		int cropY;
 
 	private slots:
 		void openFile();
-		void saveFile();
 		void saveAni();
+		void saveScr();
+		void saveBatch();
 
-		void prevFrame();
-		void nextFrame();
+		void saveScreen(QString,bool);
+
+//		void prevFrame();
+//		void nextFrame();
+		void setFrame(int);
 		void playGif();
 		void playFrame();
 

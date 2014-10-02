@@ -22,16 +22,28 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	ui.cbType->setCurrentIndex(0);
 	chaMode();
 
+	QAction* sep1 = new QAction(NULL);
+	QAction* sep2 = new QAction(NULL);
+	sep1->setSeparator(true);
+	sep2->setSeparator(true);
+	ui.tbSave->addAction(ui.aBWscreen);
+	ui.tbSave->addAction(sep1);
+	ui.tbSave->addAction(ui.aSaveScr);
+	ui.tbSave->addAction(sep2);
+	ui.tbSave->addAction(ui.aSaveAni);
+	ui.tbSave->addAction(ui.aBatchScr);
+
 	isPlaying = false;
 	isGif = false;
 	curFrame = 0;
 
 	connect(ui.tbOpen,SIGNAL(clicked()),this,SLOT(openFile()));
-	connect(ui.tbSave,SIGNAL(clicked()),this,SLOT(saveFile()));
-	connect(ui.tbSaveAni,SIGNAL(clicked()),this,SLOT(saveAni()));
 
-	connect(ui.tbPrev,SIGNAL(clicked()),this,SLOT(prevFrame()));
-	connect(ui.tbNext,SIGNAL(clicked()),this,SLOT(nextFrame()));
+	connect(ui.aSaveScr,SIGNAL(triggered()),this,SLOT(saveScr()));
+	connect(ui.aSaveAni,SIGNAL(triggered()),this,SLOT(saveAni()));
+	connect(ui.aBatchScr,SIGNAL(triggered()),this,SLOT(saveBatch()));
+
+	connect(ui.spFrame,SIGNAL(valueChanged(int)),this,SLOT(setFrame(int)));
 	connect(ui.tbPlay,SIGNAL(clicked()),this,SLOT(playGif()));
 
 	connect(ui.cbScale,SIGNAL(activated(int)),this,SLOT(chaZoomMode()));
@@ -77,24 +89,18 @@ void MWin::resetG() {centerSlider(ui.sbGreen);}
 
 // gif
 
-void MWin::nextFrame() {
-	curFrame++;
-	if (curFrame >= gif.size()) curFrame = 0;
-	chaFrame();
-}
-
-void MWin::prevFrame() {
-	curFrame--;
-	if (curFrame < 0) curFrame = gif.size() - 1;
-	chaFrame();
-}
-
-void MWin::chaFrame() {
-	if ((curFrame < 0) || (curFrame >= gif.size())) {
-		img.fill(Qt::black);
+void MWin::setFrame(int nr) {
+	if (!isGif) return;			// fuck off
+	if (gif.size() == 0) return;
+	if ((nr < 0) || (nr >= gif.size())) {
+		while (nr < 0) nr += gif.size();
+		while (nr >= gif.size()) nr -= gif.size();
+		curFrame = nr;
+		ui.spFrame->setValue(nr);
 	} else {
+		curFrame = nr;
 		img = gif.at(curFrame).img;
-		ui.labFrame->setText(QString("%0 / %1").arg(curFrame + 1).arg(gif.size()));
+		ui.labFrame->setText(QString(" / %0").arg(gif.size() - 1));
 		chaZoom();
 	}
 }
@@ -102,14 +108,14 @@ void MWin::chaFrame() {
 void MWin::playGif() {
 	isPlaying = !isPlaying;
 	ui.tbPlay->setText(isPlaying ? "Stop" : "Play");
-	ui.tbNext->setEnabled(!isPlaying);
-	ui.tbPrev->setEnabled(!isPlaying);
+//	ui.tbNext->setEnabled(!isPlaying);
+//	ui.tbPrev->setEnabled(!isPlaying);
 	QTimer::singleShot(gif.at(curFrame).delay,this,SLOT(playFrame()));
 }
 
 void MWin::playFrame() {
 	if (!isPlaying) return;
-	nextFrame();
+	ui.spFrame->setValue(curFrame+1);		// it connected to setFrame(int);
 	QTimer::singleShot(gif.at(curFrame).delay,this,SLOT(playFrame()));
 }
 
@@ -314,7 +320,7 @@ QByteArray packSprite(QByteArray spr, QByteArray& prv, int type, bool col) {
 			qba = packSprite(spr,prv,type - 4,col);
 			res = packPass2(qba,col);
 			break;
-		default:			// type 0
+		default:			// type 0 TODO:convert boxed sprite to line format (need dx at least)
 /*
 			adr = 0;
 			do {
@@ -367,13 +373,13 @@ QByteArray emptySprite(int dx, int dy) {
 
 void MWin::openFile() {
 	if (isPlaying) playGif();
-	QString path = QFileDialog::getOpenFileName(this,"Open image","","Images (*.jpg *.jpeg *.png *.bmp *.gif)",0,QFileDialog::DontUseNativeDialog);
+	QString path = QFileDialog::getOpenFileName(this,"Open image","","Images (*.jpg *.jpeg *.png *.bmp *.gif)");
 	if (path.isEmpty()) return;
 	QImageReader rd(path);
 	if (rd.canRead()) {
+		gif.clear();
 		curFrame = 0;
 		if (rd.format() == "gif") {
-			gif.clear();
 			GIFrame frm;
 			while (rd.canRead()) {
 				frm.delay = rd.nextImageDelay();
@@ -382,6 +388,9 @@ void MWin::openFile() {
 			}
 			isGif = true;
 			img = gif.at(curFrame).img;
+			ui.spFrame->setMinimum(-1);			// +- 1 from real min/max values for cycling
+			ui.spFrame->setMaximum(gif.size());
+			ui.spFrame->setValue(curFrame);
 		} else {
 			img = rd.read();
 			ui.labSrc->dx = 0;
@@ -390,30 +399,56 @@ void MWin::openFile() {
 		}
 		isPlaying = false;
 //		ui.tbCrop->setChecked(false);
-		ui.tbPrev->setEnabled(isGif);
-		ui.tbNext->setEnabled(isGif);
+		ui.spFrame->setEnabled(isGif);
 		ui.tbPlay->setEnabled(isGif);
-		ui.tbSaveAni->setEnabled(isGif);
-		ui.labFrame->setText(QString("%0 / %1").arg(curFrame + 1).arg(gif.size()));
+		ui.labFrame->setText(QString(" / %0").arg(gif.size() - 1));
 		chaZoomMode();
 	} else {
 		QMessageBox::critical(this,"Error","Fail to load image",QMessageBox::Ok);
 	}
 }
 
-void MWin::saveFile() {
+void MWin::saveScr() {
 	if (img.isNull()) return;
-	QString path = QFileDialog::getSaveFileName(this,"Save screen","","ZX screen (*.scr)",0,QFileDialog::DontUseNativeDialog);
+	QString path = QFileDialog::getSaveFileName(this,"Save screen","","ZX color screen (*.scr)");
 	if (path.isEmpty()) return;
+	saveScreen(path,!ui.aBWscreen->isChecked());
+}
+
+void MWin::saveBatch() {
+	if (!isGif || (gif.size() == 0)) return;
+	QString path = QFileDialog::getSaveFileName(this,"Save screens","","ZX color screen batch (*.scr)");
+	if (path.isEmpty()) return;
+	int cnt;
+	QByteArray scr;
+	QString fpath;
+	bool col = !ui.aBWscreen->isChecked();
+	for (cnt = 0; cnt < gif.size(); cnt++) {
+		img = gif.at(cnt).img;
+		chaZoom();		// dst = converted QImage
+		scr = img2scr(dst);	// scr = zx screen
+		fpath = path;
+		fpath.append(QString(".%0.scr").arg(QString::number(cnt+1000).right(3)));
+		saveScreen(fpath,col);
+	}
+	setFrame(curFrame);
+}
+
+void MWin::saveScreen(QString path, bool col) {
 	QByteArray data = img2scr(dst);
 	QFile file(path);
 	file.open(QFile::WriteOnly);
-	if (file.isOpen()) file.write(data);
+	if (file.isOpen()) {
+		file.write(data.data(),col ? 0x1b00 : 0x1800);
+	} else {
+		QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
+	}
 }
 
 void MWin::saveAni() {
 	if (!isGif) return;
-	// QMessageBox::warning(this,"Oops","Not working yet",QMessageBox::Ok);
+	QString path = QFileDialog::getSaveFileName(this,"Save ani","","ZX animations (*.ani)");
+	if (path.isEmpty()) return;
 	int cnt, type, minSize, bestType;
 	int posx = (ui.labSrc->dx < 0) ? (-ui.labSrc->dx) & 0xf8 : 0;
 	int posy = (ui.labSrc->dy < 0) ? (-ui.labSrc->dy) & 0xf8 : 0;
@@ -461,17 +496,15 @@ void MWin::saveAni() {
 	}
 	ani.append(0xff);
 
-	QString path = QFileDialog::getSaveFileName(this,"Save ani","","ZX animations (*.ani)",0,QFileDialog::DontUseNativeDialog);
-	if (path.isEmpty()) return;
+//	QString path = QFileDialog::getSaveFileName(this,"Save ani","","ZX animations (*.ani)");
+//	if (path.isEmpty()) return;
 	QFile file(path);
 	if (file.open(QFile::WriteOnly)) {
 		file.write(ani);
 	} else {
 		QMessageBox::critical(this,"Error","Can't open file for writing",QMessageBox::Ok);
 	}
-
-	img = gif.at(curFrame).img;
-	chaZoom();
+	setFrame(curFrame);
 }
 
 // change parameters
