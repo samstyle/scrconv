@@ -1,5 +1,7 @@
 #include "mainwin.h"
 
+QByteArray chunkScr(768, 0);
+
 MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	ui.setupUi(this);
 
@@ -17,6 +19,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	ui.cbType->addItem("Solid",CONV_SOLID);
 	ui.cbType->addItem("Tritone",CONV_TRITONE);
 	ui.cbType->addItem("Texture",CONV_TEXTURE);
+	ui.cbType->addItem("Chunks 4x4",CONV_CHUNK4);
 	ui.cbType->insertSeparator(255);
 	ui.cbType->addItem("Solid color",CONV_SOLID_COL);
 	ui.cbType->setCurrentIndex(0);
@@ -29,9 +32,13 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	ui.tbSave->addAction(ui.aBWscreen);
 	ui.tbSave->addAction(sep1);
 	ui.tbSave->addAction(ui.aSaveScr);
+	ui.tbSave->addAction(ui.aSavePng);
 	ui.tbSave->addAction(sep2);
 	ui.tbSave->addAction(ui.aSaveAni);
 	ui.tbSave->addAction(ui.aBatchScr);
+
+	ui.aSaveAni->setEnabled(false);
+	ui.aBatchScr->setEnabled(false);
 
 	isPlaying = false;
 	isGif = false;
@@ -42,6 +49,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.aSaveScr,SIGNAL(triggered()),this,SLOT(saveScr()));
 	connect(ui.aSaveAni,SIGNAL(triggered()),this,SLOT(saveAni()));
 	connect(ui.aBatchScr,SIGNAL(triggered()),this,SLOT(saveBatch()));
+	connect(ui.aSavePng,SIGNAL(triggered()),this,SLOT(savePng()));
 
 	connect(ui.spFrame,SIGNAL(valueChanged(int)),this,SLOT(setFrame(int)));
 	connect(ui.tbPlay,SIGNAL(clicked()),this,SLOT(playGif()));
@@ -67,12 +75,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.sbRed,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetR()));
 	connect(ui.sbGreen,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetG()));
 
-	QString frm;
-	QList<QByteArray> sup = QImageReader::supportedImageFormats();
-	foreach(QByteArray f,sup) {
-	    frm.append(QString(f)).append(" ");
-	}
-	ui.statusbar->showMessage(QString("Qt %0 : %1").arg(qVersion()).arg(frm),0);
+	ui.statusbar->showMessage(QString("Qt %0").arg(qVersion()));
 }
 
 // reset levels
@@ -399,20 +402,45 @@ void MWin::openFile() {
 		}
 		isPlaying = false;
 //		ui.tbCrop->setChecked(false);
+
 		ui.spFrame->setEnabled(isGif);
 		ui.tbPlay->setEnabled(isGif);
 		ui.labFrame->setText(QString(" / %0").arg(gif.size() - 1));
+
+		ui.aSaveAni->setEnabled(isGif);
+		ui.aBatchScr->setEnabled(isGif);
 		chaZoomMode();
 	} else {
 		QMessageBox::critical(this,"Error","Fail to load image",QMessageBox::Ok);
 	}
 }
 
+void MWin::savePng() {
+	if (img.isNull()) return;
+	QString path = QFileDialog::getSaveFileName(this,"Save screen","","PNG fils (*.png)");
+	if (path.isEmpty()) return;
+	QImageWriter wr(path);
+	wr.setFormat("png");
+	wr.write(dst);
+}
+
 void MWin::saveScr() {
 	if (img.isNull()) return;
-	QString path = QFileDialog::getSaveFileName(this,"Save screen","","ZX color screen (*.scr)");
-	if (path.isEmpty()) return;
-	saveScreen(path,!ui.aBWscreen->isChecked());
+	QString path;
+	if (convType == CONV_CHUNK4) {
+		path = QFileDialog::getSaveFileName(this,"Save chunks","","Chunk screen (*.rch)");
+		if (path.isEmpty()) return;
+		QFile file(path);
+		if (file.open(QFile::WriteOnly)) {
+			file.write(chunkScr.data(), 0x300);
+		} else {
+			QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
+		}
+	} else {
+		path = QFileDialog::getSaveFileName(this,"Save screen","","ZX screen (*.scr)");
+		if (path.isEmpty()) return;
+		saveScreen(path,!ui.aBWscreen->isChecked());
+	}
 }
 
 void MWin::saveBatch() {
@@ -437,8 +465,7 @@ void MWin::saveBatch() {
 void MWin::saveScreen(QString path, bool col) {
 	QByteArray data = img2scr(dst);
 	QFile file(path);
-	file.open(QFile::WriteOnly);
-	if (file.isOpen()) {
+	if (file.open(QFile::WriteOnly)) {
 		file.write(data.data(),col ? 0x1b00 : 0x1800);
 	} else {
 		QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
@@ -583,18 +610,70 @@ int getGray(int lev, int brg, int cont) {
 	return lev;
 }
 
+QRgb rgb2zx(QRgb col) {
+	QRgb res;
+/*
+	int y = 0.299 * red + 0.587 * grn + 0.114 * blu;
+	int u = -0.14713 * red - 0.28886 * grn + 0.436 * blu + 128;
+	int v = 0.615 * red - 0.51499 * grn - 0.10001 * blu + 128;
+*/
+	int min,max;	// h
+	int red = qRed(col);
+	int grn = qGreen(col);
+	int blu = qBlue(col);
+
+	if (red < grn) {
+		min = (red < blu) ? red : blu;
+		max = (grn < blu) ? blu : grn;
+	} else {
+		min = (grn < blu) ? grn : blu;
+		max = (red < blu) ? blu : red;
+	}
+	if ((max - min) < 32) {
+		res = (qGray(col) > 128) ? qRgb(128,128,128) : qRgb(0,0,0);
+	} else {
+		res = qRgb(red & 128, grn & 128, blu & 128);
+	}
+
+/*
+	if (min == max) {
+		h = 0;
+	} else {
+		if (max == red) {
+			h = 60 * (grn - blu) / (max - min);
+			if (h < 0) h += 360;
+		} else if (max == grn) {
+			h = 60 * (blu - red) / (max - min) + 120;
+		} else {
+			h = 60 * (red - grn) / (max - min) + 240;
+		}
+	}
+
+	if (max < 80) {
+		res = qRgb(0,0,0);
+	} else if ((max - min) < 64) {
+		res = (max > 128) ? qRgb(128,128,128) : qRgb(0,0,0);
+	} else {
+		if (h < 30) res = qRgb(128,0,0);	// red (orange)
+		else if (h < 90) res = qRgb(128,128,0);	// yellow
+		else if (h < 150) res = qRgb(0,128,0);	// green
+		else if (h < 210) res = qRgb(0,128,128);// cyan
+		else if (h < 270) res = qRgb(0,0,128);	// blue
+		else if (h < 330) res = qRgb(128,0,128);// magenta
+		else res = qRgb(128,0,0);		// red again
+	}
+
+//	res = qRgb(red & 128, grn & 128, blu & 128);
+*/
+	return res;
+}
+
 void poster(QImage& src) {
 	int x,y;
-	QRgb col;
-	int red,grn,blu;
+//	QRgb col;
 	for (x = 0; x < src.width(); x++) {
 		for (y = 0; y < src.height(); y++) {
-			col = src.pixel(x,y);
-			red = qRed(col) & 0x80;
-			grn = qGreen(col) & 0x80;
-			blu = qBlue(col) & 0x80;
-			col = qRgb(red,grn,blu);
-			src.setPixel(x,y,col);
+			src.setPixel(x,y,rgb2zx(src.pixel(x,y)));
 		}
 	}
 }
@@ -704,6 +783,60 @@ QImage doTexture(QImage& src) {
 	return res;
 }
 
+/*
+int getGraySum(QImage& src, int x, int y, int dx, int dy) {
+	int res = 0;
+	int sx, sy;
+	for (sx = 0; sx < dx; sx++) {
+		for (sy = 0; sy < dy; sy++) {
+			res += qGray(src.pixel(x + sx, y + sy));
+		}
+	}
+	return res;
+}
+*/
+
+const int dChkTab[] = {0x00, 0x50, 0xa0, 0xf8};
+
+QImage doChunk44(QImage& src) {
+	QImage res(256,192,QImage::Format_RGB32);
+	QImage chsc = src.scaled(64,48);
+	int x,y;
+	int lev = 0;
+	int chk = 0;
+	int txt;
+	int pos,dat;
+	int xmax = src.width();
+	int ymax = src.height();
+	if (xmax > 256) xmax = 256;
+	if (ymax > 192) ymax = 192;
+	for (y = 0; y < ymax; y++) {
+		for (x = 0; x < xmax; x++) {
+			lev = qGray(chsc.pixel(x >> 2, y >> 2));
+			chk = (lev >> 6) & 3;
+			txt = texture_bin[dChkTab[chk] | (y & 3)];
+			if (txt & (0x80 >> (x & 3))) {
+				res.setPixel(x,y,qRgb(255,255,255));
+			} else {
+				res.setPixel(x,y,qRgb(0,0,0));
+			}
+			if (((x & 3) == 0) && ((y & 3) == 0)) {
+				pos = ((x & 0xf8) >> 3) | ((y & 0xf8) << 2);
+				dat = chunkScr[pos];
+				if (y & 4) {
+					if (x & 4) dat = (dat & 0xfc) | chk;
+					else dat = (dat & 0xf3) | (chk << 2);
+				} else {
+					if (x & 4) dat = (dat & 0xcf) | (chk << 4);
+					else dat = (dat & 0x3f) | (chk << 6);
+				}
+				chunkScr[pos] = dat;
+			}
+		}
+	}
+	return res;
+}
+
 void MWin::convert() {
 	if (src.isNull()) return;
 	dst = doConvert(src);
@@ -741,6 +874,9 @@ QImage MWin::doConvert(QImage toc) {
 			break;
 		case CONV_SOLID_COL:
 			res = doSolidCol(toc);
+			break;
+		case CONV_CHUNK4:
+			res = doChunk44(toc);
 			break;
 		default:
 			res = QImage(256,192,QImage::Format_RGB32);

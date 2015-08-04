@@ -13,6 +13,7 @@
 #define	CONV_SOLID 0
 #define CONV_TRITONE 1
 #define CONV_TEXTURE 2
+#define CONV_CHUNK4 3
 #define CONV_SOLID_COL 256
 
 struct GIFrame {
@@ -45,12 +46,11 @@ class MWin : public QMainWindow {
 		void openFile();
 		void saveAni();
 		void saveScr();
+		void savePng();
 		void saveBatch();
 
 		void saveScreen(QString,bool);
 
-//		void prevFrame();
-//		void nextFrame();
 		void setFrame(int);
 		void playGif();
 		void playFrame();
