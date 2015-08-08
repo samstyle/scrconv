@@ -18,3 +18,6 @@ HEADERS += \
     mainwin.h \
     mlabel.h \
     textures.h
+
+RESOURCES += \
+    resources.qrc

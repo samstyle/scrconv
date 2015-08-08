@@ -9,7 +9,7 @@ class MLabel : public QLabel {
 		MLabel(QWidget* par):QLabel(par) {dx = 0; dy = 0; magn = 1.0;}
 		int dx,dy;
 		float magn;
-		bool blockWheel;
+//		bool blockWheel;
 	signals:
 		void mMove();
 		void mZoom();

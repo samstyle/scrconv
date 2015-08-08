@@ -33,7 +33,7 @@ class MWin : public QMainWindow {
 		QImage dst;		// result
 		QList<GIFrame> gif;
 		int curFrame;
-		int zoomMode;
+//		int zoomMode;
 		int convType;
 		bool isGif;
 		bool isPlaying;
@@ -65,8 +65,12 @@ class MWin : public QMainWindow {
 		void convert();
 		void movePic();
 		void chaZoom();
+		void chaZoomH();
+		void chaZoomW();
+		void chaZoomHW();
+		void chaZoomOrig();
 		void chaMode();
-		void chaZoomMode();
+//		void chaZoomMode();
 		void setCrop();
 };
 

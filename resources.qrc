@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>fit.png</file>
+        <file>heigth.png</file>
+        <file>width.png</file>
+        <file>size.png</file>
+        <file>open.png</file>
+        <file>save.png</file>
+        <file>bright.png</file>
+        <file>contrast.png</file>
+        <file>play.png</file>
+        <file>frame.png</file>
+        <file>stop.png</file>
+    </qresource>
+</RCC>

@@ -7,7 +7,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 
 	ui.labSrc->setPixmap(QPixmap(256,192));
 	ui.labResult->setPixmap(QPixmap(256,192));
-
+/*
 	ui.cbScale->addItem("Real size", CONV_REAL);
 	ui.cbScale->addItem("Scale to width",CONV_WIDTH);
 	ui.cbScale->addItem("Scale to heigth",CONV_HEIGHT);
@@ -15,7 +15,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	ui.cbScale->addItem("Free zoom",CONV_ZOOM);
 	ui.cbScale->setCurrentIndex(0);
 	zoomMode = CONV_REAL;
-
+*/
 	ui.cbType->addItem("Solid",CONV_SOLID);
 	ui.cbType->addItem("Tritone",CONV_TRITONE);
 	ui.cbType->addItem("Texture",CONV_TEXTURE);
@@ -54,7 +54,11 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.spFrame,SIGNAL(valueChanged(int)),this,SLOT(setFrame(int)));
 	connect(ui.tbPlay,SIGNAL(clicked()),this,SLOT(playGif()));
 
-	connect(ui.cbScale,SIGNAL(activated(int)),this,SLOT(chaZoomMode()));
+//	connect(ui.cbScale,SIGNAL(activated(int)),this,SLOT(chaZoomMode()));
+	connect(ui.tbSizeH,SIGNAL(released()),this,SLOT(chaZoomH()));
+	connect(ui.tbSizeW,SIGNAL(released()),this,SLOT(chaZoomW()));
+	connect(ui.tbSizeHW,SIGNAL(released()),this,SLOT(chaZoomHW()));
+	connect(ui.tbSizeOrig,SIGNAL(released()),this,SLOT(chaZoomOrig()));
 	connect(ui.cbType,SIGNAL(activated(int)),this,SLOT(chaMode()));
 
 	connect(ui.labSrc,SIGNAL(mMove()),this,SLOT(movePic()));
@@ -75,7 +79,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.sbRed,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetR()));
 	connect(ui.sbGreen,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetG()));
 
-	ui.statusbar->showMessage(QString("Qt %0").arg(qVersion()));
+//	ui.statusbar->showMessage(QString("Qt %0").arg(qVersion()));
 }
 
 // reset levels
@@ -110,9 +114,7 @@ void MWin::setFrame(int nr) {
 
 void MWin::playGif() {
 	isPlaying = !isPlaying;
-	ui.tbPlay->setText(isPlaying ? "Stop" : "Play");
-//	ui.tbNext->setEnabled(!isPlaying);
-//	ui.tbPrev->setEnabled(!isPlaying);
+	ui.tbPlay->setIcon(QIcon(isPlaying ? ":/stop.png" : ":/play.png"));
 	QTimer::singleShot(gif.at(curFrame).delay,this,SLOT(playFrame()));
 }
 
@@ -409,7 +411,10 @@ void MWin::openFile() {
 
 		ui.aSaveAni->setEnabled(isGif);
 		ui.aBatchScr->setEnabled(isGif);
-		chaZoomMode();
+		ui.labSrc->dx = 0;
+		ui.labSrc->dy = 0;
+		ui.labSrc->magn = 1.0;
+		chaZoom();
 	} else {
 		QMessageBox::critical(this,"Error","Fail to load image",QMessageBox::Ok);
 	}
@@ -563,34 +568,45 @@ void MWin::chaMode() {
 	convert();
 }
 
+/*
 void MWin::chaZoomMode() {
 	ui.labSrc->dx = 0;
 	ui.labSrc->dy = 0;
 	zoomMode = ui.cbScale->itemData(ui.cbScale->currentIndex()).toInt();
 	chaZoom();
 }
+*/
+
+void MWin::chaZoomH() {
+	ui.labSrc->magn = 192.0 / img.height();
+	ui.labSrc->dx = 0;
+	chaZoom();
+}
+
+void MWin::chaZoomW() {
+	ui.labSrc->magn = 256.0 / img.width();
+	ui.labSrc->dy = 0;
+	chaZoom();
+}
+
+void MWin::chaZoomHW() {
+	float mx = 256.0 / img.width();
+	float my = 192.0 / img.height();
+	ui.labSrc->magn = (mx < my) ? mx : my;
+	ui.labSrc->dx = 0;
+	ui.labSrc->dy = 0;
+	chaZoom();
+}
+
+void MWin::chaZoomOrig() {
+	ui.labSrc->magn = 1.0;
+	chaZoom();
+}
 
 void MWin::chaZoom() {
-	int x,y;
-	switch (zoomMode) {
-		case CONV_REAL:
-			imgScaled = img;
-			break;
-		case CONV_WIDTH:
-			imgScaled = img.scaledToWidth(256);
-			break;
-		case CONV_HEIGHT:
-			imgScaled = img.scaledToHeight(192);
-			break;
-		case CONV_SCALE:
-			imgScaled = img.scaled(256,192,Qt::KeepAspectRatio);
-			break;
-		case CONV_ZOOM:
-			x = img.width() * ui.labSrc->magn;
-			y = img.height() * ui.labSrc->magn;
-			imgScaled = img.scaled(x,y,Qt::KeepAspectRatio);
-			break;
-	}
+	int x = img.width() * ui.labSrc->magn;
+	int y = img.height() * ui.labSrc->magn;
+	imgScaled = img.scaled(x,y,Qt::KeepAspectRatio);
 	movePic();
 }
 
@@ -598,6 +614,7 @@ void MWin::movePic() {
 	if (img.isNull()) return;
 	int dx = ui.labSrc->dx;
 	int dy = ui.labSrc->dy;
+/*
 	switch(zoomMode) {
 		case CONV_WIDTH:
 			dx = 0;
@@ -610,9 +627,10 @@ void MWin::movePic() {
 			dy = 0;
 			break;
 	}
+*/
 	src = imgScaled.copy(dx, dy, 256, 192);
 	ui.labSrc->setPixmap(QPixmap::fromImage(src));
-	ui.labSrc->blockWheel = (zoomMode != CONV_ZOOM);
+//	ui.labSrc->blockWheel = (zoomMode != CONV_ZOOM);
 	convert();
 }
 
@@ -876,7 +894,7 @@ QImage MWin::doConvert(QImage toc) {
 			grn = getGray(qGreen(col) * glev / 100,brg,con);
 			blu = getGray(qBlue(col) * blev / 100,brg,con);
 			col = qRgb(red,grn,blu);
-			toc.setPixel(x,y,qRgb(red,grn,blu));
+			toc.setPixel(x,y,col);
 		}
 	}
 	switch (convType) {

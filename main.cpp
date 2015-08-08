@@ -32,7 +32,7 @@ void MLabel::mouseMoveEvent(QMouseEvent *ev) {
 }
 
 void MLabel::wheelEvent(QWheelEvent* ev) {
-	if (blockWheel) return;
+//	if (blockWheel) return;
 	float oldMag = magn;
 	if (ev->delta() < 0) {
 		if (magn > 0.1) magn /= 1.1;
