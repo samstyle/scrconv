@@ -50,6 +50,7 @@ class MWin : public QMainWindow {
 		void saveBatch();
 
 		void saveScreen(QString,bool);
+		void saveChunk(QString);
 
 		void setFrame(int);
 		void playGif();

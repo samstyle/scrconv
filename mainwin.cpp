@@ -430,12 +430,7 @@ void MWin::saveScr() {
 	if (convType == CONV_CHUNK4) {
 		path = QFileDialog::getSaveFileName(this,"Save chunks","","Chunk screen (*.rch)");
 		if (path.isEmpty()) return;
-		QFile file(path);
-		if (file.open(QFile::WriteOnly)) {
-			file.write(chunkScr.data(), 0x300);
-		} else {
-			QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
-		}
+		saveChunk(path);
 	} else {
 		path = QFileDialog::getSaveFileName(this,"Save screen","","ZX screen (*.scr)");
 		if (path.isEmpty()) return;
@@ -445,21 +440,43 @@ void MWin::saveScr() {
 
 void MWin::saveBatch() {
 	if (!isGif || (gif.size() == 0)) return;
-	QString path = QFileDialog::getSaveFileName(this,"Save screens","","ZX color screen batch (*.scr)");
+	QString path;
+	if (convType == CONV_CHUNK4) {
+		path = QFileDialog::getSaveFileName(this,"Save chunks","","Chunk screen (*.rch)");
+	} else {
+		path = QFileDialog::getSaveFileName(this,"Save screens","","ZX color screen batch (*.scr)");
+	}
 	if (path.isEmpty()) return;
 	int cnt;
-	QByteArray scr;
+//	QByteArray scr;
 	QString fpath;
 	bool col = !ui.aBWscreen->isChecked();
 	for (cnt = 0; cnt < gif.size(); cnt++) {
 		img = gif.at(cnt).img;
 		chaZoom();		// dst = converted QImage
-		scr = img2scr(dst);	// scr = zx screen
-		fpath = path;
-		fpath.append(QString(".%0.scr").arg(QString::number(cnt+1000).right(3)));
-		saveScreen(fpath,col);
+		if (convType == CONV_CHUNK4) {
+//			scr = img2chunk(dst);
+			fpath = path;
+			fpath.append(QString(".%0.rch").arg(QString::number(cnt+1000).right(3)));
+			saveChunk(fpath);
+		} else {
+//			scr = img2scr(dst);	// scr = zx screen
+			fpath = path;
+			fpath.append(QString(".%0.scr").arg(QString::number(cnt+1000).right(3)));
+			saveScreen(fpath,col);
+		}
 	}
 	setFrame(curFrame);
+}
+
+void MWin::saveChunk(QString path) {
+//	QByteArrat data = img2chunk(dst);
+	QFile file(path);
+	if (file.open(QFile::WriteOnly)) {
+		file.write(chunkScr.data(), 0x300);
+	} else {
+		QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
+	}
 }
 
 void MWin::saveScreen(QString path, bool col) {
