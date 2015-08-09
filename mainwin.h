@@ -28,19 +28,18 @@ class MWin : public QMainWindow {
 	private:
 		Ui::MainWindow ui;
 		QImage img;		// original
-		QImage imgScaled;	// scaled
 		QImage src;		// piece for convert
 		QImage dst;		// result
 		QList<GIFrame> gif;
 		int curFrame;
-//		int zoomMode;
 		int convType;
 		bool isGif;
 		bool isPlaying;
+		QImage getSource();
 		QImage doConvert(QImage);
 
-//		int cropX;
-//		int cropY;
+		QByteArray scr;
+		QByteArray rch;
 
 	private slots:
 		void openFile();
@@ -63,7 +62,7 @@ class MWin : public QMainWindow {
 		void resetCon();
 
 		void convert();
-		void movePic();
+//		void movePic();
 		void chaZoom();
 		void chaZoomH();
 		void chaZoomW();
@@ -71,7 +70,7 @@ class MWin : public QMainWindow {
 		void chaZoomOrig();
 		void chaMode();
 //		void chaZoomMode();
-		void setCrop();
+//		void setCrop();
 };
 
 #endif // MAINWIN_H
