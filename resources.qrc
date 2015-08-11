@@ -11,5 +11,6 @@
         <file>play.png</file>
         <file>frame.png</file>
         <file>stop.png</file>
+        <file>icon.png</file>
     </qresource>
 </RCC>
