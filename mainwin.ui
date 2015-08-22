@@ -160,20 +160,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="tbSizeHW">
-        <property name="toolTip">
-         <string>Fit size</string>
-        </property>
-        <property name="text">
-         <string>...</string>
-        </property>
-        <property name="icon">
-         <iconset resource="resources.qrc">
-          <normaloff>:/fit.png</normaloff>:/fit.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QToolButton" name="tbSizeW">
         <property name="toolTip">
          <string>fit width</string>
@@ -198,6 +184,31 @@
         <property name="icon">
          <iconset resource="resources.qrc">
           <normaloff>:/heigth.png</normaloff>:/heigth.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="tbSizeHW">
+        <property name="toolTip">
+         <string>Fit size</string>
+        </property>
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="resources.qrc">
+          <normaloff>:/fit.png</normaloff>:/fit.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="tbSizeFit">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="resources.qrc">
+          <normaloff>:/scale.png</normaloff>:/scale.png</iconset>
         </property>
        </widget>
       </item>

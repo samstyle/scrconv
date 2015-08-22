@@ -92,6 +92,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.tbSizeW,SIGNAL(released()),this,SLOT(chaZoomW()));
 	connect(ui.tbSizeHW,SIGNAL(released()),this,SLOT(chaZoomHW()));
 	connect(ui.tbSizeOrig,SIGNAL(released()),this,SLOT(chaZoomOrig()));
+	connect(ui.tbSizeFit,SIGNAL(released()),this,SLOT(chaZoomFit()));
 	connect(ui.cbType,SIGNAL(activated(int)),this,SLOT(chaMode()));
 
 	connect(ui.labSrc,SIGNAL(mMove()),this,SLOT(chaZoom()));
@@ -532,8 +533,8 @@ void MWin::saveAni() {
 	QString path = QFileDialog::getSaveFileName(this,"Save ani","","ZX animations (*.ani)");
 	if (path.isEmpty()) return;
 	int cnt, type, minSize, bestType;
-	int sx = img.width() * ui.labSrc->magn;
-	int sy = img.height() * ui.labSrc->magn;
+	int sx = img.width() * ui.labSrc->magX;
+	int sy = img.height() * ui.labSrc->magY;
 	int posx = (ui.labSrc->dx < 0) ? (-ui.labSrc->dx) & 0xf8 : 0;
 	int posy = (ui.labSrc->dy < 0) ? (-ui.labSrc->dy) & 0xf8 : 0;
 	int dx = ((sx - ui.labSrc->dx) > 256) ? (256 - posx) : (sx - ((ui.labSrc->dx > 0) ? ui.labSrc->dx : 0));
@@ -584,54 +585,6 @@ void MWin::saveAni() {
 	setFrame(curFrame);
 }
 
-/*
-	QByteArray scr(0x1b00,0x00);
-	QByteArray pspr;
-	QByteArray spr = emptySprite(dx,dy);
-	QByteArray frm[9];
-	QByteArray ani;
-	ani.append(sign,14);
-	ani.append((char)(dx & 0xff));
-	ani.append((char)((dy << 3) & 0xff));
-	bool col = (convType & 256);
-	for (cnt = 0; cnt < gif.size(); cnt++) {
-		img = gif.at(cnt).img;
-		chaZoom();		// dst = converted QImage
-		pspr = spr;
-		scr = img2scr(dst);	// zx screen
-		spr = cutSprite(scr,posx,posy,dx,dy);	// cut sprite for convert
-		minSize = 0xffff;
-		bestType = 1;
-		for (type = 1; type < 9; type++) {
-			frm[type] = packSprite(spr,pspr,type,col);
-			if (frm[type].size() < minSize) {
-				minSize = frm[type].size();
-				bestType = type;
-			}
-		}
-//		bestType = 1;
-//		qDebug() << "frm" << cnt << "best pack" << bestType << "size" << minSize;
-		type = gif.at(cnt).delay / 20;
-		if (type == 0) type++;
-		if (type > 0xff) type = 0xff;
-		ani.append(type & 0xff);
-		ani.append((bestType & 0x3f) | (col ? 0x80 : 0x00));
-		ani.append(frm[bestType]);
-	}
-	ani.append(0xff);
-
-//	QString path = QFileDialog::getSaveFileName(this,"Save ani","","ZX animations (*.ani)");
-//	if (path.isEmpty()) return;
-	QFile file(path);
-	if (file.open(QFile::WriteOnly)) {
-		file.write(ani);
-	} else {
-		QMessageBox::critical(this,"Error","Can't open file for writing",QMessageBox::Ok);
-	}
-	setFrame(curFrame);
-}
-*/
-
 // change parameters
 
 void MWin::chaMode() {
@@ -644,23 +597,18 @@ void MWin::chaMode() {
 	convert();
 }
 
-/*
-void MWin::chaZoomMode() {
+void MWin::chaZoomH() {
+	ui.labSrc->magY = 192.0 / img.height();
+	ui.labSrc->magX = ui.labSrc->magY;
 	ui.labSrc->dx = 0;
 	ui.labSrc->dy = 0;
-	zoomMode = ui.cbScale->itemData(ui.cbScale->currentIndex()).toInt();
-	chaZoom();
-}
-*/
-
-void MWin::chaZoomH() {
-	ui.labSrc->magn = 192.0 / img.height();
-	ui.labSrc->dx = 0;
 	chaZoom();
 }
 
 void MWin::chaZoomW() {
-	ui.labSrc->magn = 256.0 / img.width();
+	ui.labSrc->magX = 256.0 / img.width();
+	ui.labSrc->magY = ui.labSrc->magX;
+	ui.labSrc->dx = 0;
 	ui.labSrc->dy = 0;
 	chaZoom();
 }
@@ -668,22 +616,34 @@ void MWin::chaZoomW() {
 void MWin::chaZoomHW() {
 	float mx = 256.0 / img.width();
 	float my = 192.0 / img.height();
-	ui.labSrc->magn = (mx < my) ? mx : my;
+	ui.labSrc->magX = (mx < my) ? mx : my;
+	ui.labSrc->magY = ui.labSrc->magX;
 	ui.labSrc->dx = 0;
 	ui.labSrc->dy = 0;
 	chaZoom();
 }
 
 void MWin::chaZoomOrig() {
-	ui.labSrc->magn = 1.0;
+	ui.labSrc->magX = 1.0;
+	ui.labSrc->magY = 1.0;
+	ui.labSrc->dx = 0;
+	ui.labSrc->dy = 0;
+	chaZoom();
+}
+
+void MWin::chaZoomFit() {
+	ui.labSrc->magX = 256.0 / img.width();
+	ui.labSrc->magY = 192.0 / img.height();
+	ui.labSrc->dx = 0;
+	ui.labSrc->dy = 0;
 	chaZoom();
 }
 
 QImage MWin::getSource() {
-	int x = ui.labSrc->dx / ui.labSrc->magn;
-	int y = ui.labSrc->dy / ui.labSrc->magn;
-	int dx = 256 / ui.labSrc->magn;
-	int dy = 192 / ui.labSrc->magn;
+	int x = ui.labSrc->dx / ui.labSrc->magX;
+	int y = ui.labSrc->dy / ui.labSrc->magY;
+	int dx = 256 / ui.labSrc->magX;
+	int dy = 192 / ui.labSrc->magY;
 	return img.copy(x, y, dx, dy).scaled(256, 192);
 }
 

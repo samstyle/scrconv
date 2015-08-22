@@ -16,8 +16,7 @@ FORMS += \
 
 HEADERS += \
     mainwin.h \
-    mlabel.h \
-    textures.h
+    mlabel.h
 
 RESOURCES += \
     resources.qrc

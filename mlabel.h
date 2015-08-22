@@ -6,9 +6,10 @@
 class MLabel : public QLabel {
 	Q_OBJECT
 	public:
-		MLabel(QWidget* par):QLabel(par) {dx = 0; dy = 0; magn = 1.0;}
+		MLabel(QWidget* par):QLabel(par) {dx = 0; dy = 0; magX = magY = 1.0;}
 		int dx,dy;
-		float magn;
+		float magX;
+		float magY;
 //		bool blockWheel;
 	signals:
 		void mMove();

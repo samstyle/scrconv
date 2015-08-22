@@ -62,15 +62,13 @@ class MWin : public QMainWindow {
 		void resetCon();
 
 		void convert();
-//		void movePic();
 		void chaZoom();
 		void chaZoomH();
 		void chaZoomW();
 		void chaZoomHW();
 		void chaZoomOrig();
+		void chaZoomFit();
 		void chaMode();
-//		void chaZoomMode();
-//		void setCrop();
 };
 
 #endif // MAINWIN_H

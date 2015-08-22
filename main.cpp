@@ -12,9 +12,9 @@ void MLabel::mousePressEvent(QMouseEvent *ev) {
 			emit mMove();
 			break;
 		case Qt::MiddleButton:
-			dx = (dx + 128) / magn - 128;
-			dy = (dy + 96) / magn - 96;
-			magn = 1.0;
+			dx = (dx + 128) / magX - 128;
+			dy = (dy + 96) / magY - 96;
+			magX = magY = 1.0;
 			emit mZoom();
 			break;
 		default:
@@ -33,14 +33,21 @@ void MLabel::mouseMoveEvent(QMouseEvent *ev) {
 
 void MLabel::wheelEvent(QWheelEvent* ev) {
 //	if (blockWheel) return;
-	float oldMag = magn;
+	float oldMagX = magX;
+	float oldMagY = magY;
 	if (ev->delta() < 0) {
-		if (magn > 0.1) magn /= 1.1;
+		if ((magX > 0.1) && (magY > 0.1)) {
+			magX /= 1.1;
+			magY /= 1.1;
+		}
 	} else {
-		if (magn < 4.0) magn *= 1.1;
+		if ((magX < 4.0) && (magY < 4.0)) {
+			magX *= 1.1;
+			magY *= 1.1;
+		}
 	}
-	dx = (dx + 128) * magn / oldMag - 128;
-	dy = (dy + 96) * magn / oldMag - 96;
+	dx = (dx + 128) * magX / oldMagX - 128;
+	dy = (dy + 96) * magY / oldMagY - 96;
 	emit mZoom();
 }
 

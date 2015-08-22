@@ -12,5 +12,6 @@
         <file>frame.png</file>
         <file>stop.png</file>
         <file>icon.png</file>
+        <file>scale.png</file>
     </qresource>
 </RCC>
