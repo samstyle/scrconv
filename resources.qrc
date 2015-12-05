@@ -13,5 +13,6 @@
         <file>stop.png</file>
         <file>icon.png</file>
         <file>scale.png</file>
+        <file>grid.png</file>
     </qresource>
 </RCC>

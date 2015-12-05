@@ -93,6 +93,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.tbSizeHW,SIGNAL(released()),this,SLOT(chaZoomHW()));
 	connect(ui.tbSizeOrig,SIGNAL(released()),this,SLOT(chaZoomOrig()));
 	connect(ui.tbSizeFit,SIGNAL(released()),this,SLOT(chaZoomFit()));
+	connect(ui.tbShowGrid,SIGNAL(released()),this,SLOT(convert()));
 	connect(ui.cbType,SIGNAL(activated(int)),this,SLOT(chaMode()));
 
 	connect(ui.labSrc,SIGNAL(mMove()),this,SLOT(chaZoom()));
@@ -761,6 +762,7 @@ QRgb colTab[16] = {
 
 QImage scr2img(QByteArray data) {
 	QImage res(256,192,QImage::Format_RGB888);
+	res.fill(qRgb(100,100,100));
 	int adr = 0;
 	int aadr = 0x1800;
 	QRgb ink = qRgb(0,0,0);
@@ -1031,5 +1033,18 @@ QImage MWin::doConvert(QImage toc) {
 			res = scr2img(dat);
 			break;
 	}
+	if (ui.tbShowGrid->isChecked()) {
+		QPainter pnt;
+		pnt.begin(&res);
+		pnt.setPen(qRgb(60,60,60));
+		for (x = 0; x < res.width(); x += 8) {
+			pnt.drawLine(x, 0, x, res.height());
+		}
+		for (y = 0; y < res.height(); y += 8) {
+			pnt.drawLine(0, y, res.width(), y);
+		}
+		pnt.end();
+	}
+
 	return res;
 }
