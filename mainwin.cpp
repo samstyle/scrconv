@@ -117,6 +117,15 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 //	ui.statusbar->showMessage(QString("Qt %0").arg(qVersion()));
 }
 
+void MWin::keyPressEvent(QKeyEvent* ev) {
+	switch(ev->key()) {
+		case Qt::Key_W: ui.labSrc->shift(0, 1); break;
+		case Qt::Key_A: ui.labSrc->shift(1, 0); break;
+		case Qt::Key_S: ui.labSrc->shift(0, -1); break;
+		case Qt::Key_D: ui.labSrc->shift(-1, 0); break;
+	}
+}
+
 // reset levels
 
 void centerSlider(QSlider* sld) {

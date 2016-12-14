@@ -22,6 +22,14 @@ void MLabel::mousePressEvent(QMouseEvent *ev) {
 	}
 }
 
+void MLabel::shift(int sx, int sy) {
+	dx += sx;
+	dy += sy;
+	posx += sx;
+	posy += sy;
+	emit mMove();
+}
+
 void MLabel::mouseMoveEvent(QMouseEvent *ev) {
 	if (!(ev->buttons() & Qt::LeftButton)) return;
 	dx -= (ev->x() - posx);
@@ -32,7 +40,6 @@ void MLabel::mouseMoveEvent(QMouseEvent *ev) {
 }
 
 void MLabel::wheelEvent(QWheelEvent* ev) {
-//	if (blockWheel) return;
 	float oldMagX = magX;
 	float oldMagY = magY;
 	if (ev->delta() < 0) {

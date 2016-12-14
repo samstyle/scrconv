@@ -10,7 +10,7 @@ class MLabel : public QLabel {
 		int dx,dy;
 		float magX;
 		float magY;
-//		bool blockWheel;
+		void shift(int, int);
 	signals:
 		void mMove();
 		void mZoom();

@@ -69,6 +69,8 @@ class MWin : public QMainWindow {
 		void chaZoomOrig();
 		void chaZoomFit();
 		void chaMode();
+	protected:
+		void keyPressEvent(QKeyEvent*);
 };
 
 #endif // MAINWIN_H
