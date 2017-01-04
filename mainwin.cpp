@@ -113,6 +113,8 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.sbBlue,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetB()));
 	connect(ui.sbRed,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetR()));
 	connect(ui.sbGreen,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetG()));
+	connect(ui.triMax, SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetTMax()));
+	connect(ui.triMin, SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetTMin()));
 
 //	ui.statusbar->showMessage(QString("Qt %0").arg(qVersion()));
 }
@@ -137,6 +139,8 @@ void MWin::resetCon() {centerSlider(ui.contrast);}
 void MWin::resetB() {centerSlider(ui.sbBlue);}
 void MWin::resetR() {centerSlider(ui.sbRed);}
 void MWin::resetG() {centerSlider(ui.sbGreen);}
+void MWin::resetTMax() {ui.triMax->setValue(224);}
+void MWin::resetTMin() {ui.triMin->setValue(128);}
 
 // gif
 

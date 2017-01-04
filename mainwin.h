@@ -60,6 +60,8 @@ class MWin : public QMainWindow {
 		void resetG();
 		void resetBrg();
 		void resetCon();
+		void resetTMax();
+		void resetTMin();
 
 		void convert();
 		void chaZoom();
