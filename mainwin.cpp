@@ -605,9 +605,9 @@ void MWin::chaMode() {
 	convType = ui.cbType->itemData(ui.cbType->currentIndex()).toInt();
 	ui.triMax->setEnabled(convType == CONV_TRITONE);
 	ui.triMin->setEnabled(convType == CONV_TRITONE);
-	ui.sbRed->setEnabled(convType & 256);
-	ui.sbGreen->setEnabled(convType & 256);
-	ui.sbBlue->setEnabled(convType & 256);
+//	ui.sbRed->setEnabled(convType & 256);
+//	ui.sbGreen->setEnabled(convType & 256);
+//	ui.sbBlue->setEnabled(convType & 256);
 	convert();
 }
 
