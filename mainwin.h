@@ -4,17 +4,27 @@
 #include <ui_mainwin.h>
 #include <QtGui>
 
-#define CONV_REAL 0
-#define CONV_WIDTH 1
-#define CONV_HEIGHT 2
-#define CONV_SCALE 3
-#define	CONV_ZOOM 4
+enum {
+	CONV_REAL=0,
+	CONV_WIDTH,
+	CONV_HEIGHT,
+	CONV_SCALE,
+	CONV_ZOOM
+};
 
-#define	CONV_SOLID 0
-#define CONV_TRITONE 1
-#define CONV_TEXTURE 2
-#define CONV_CHUNK4 3
-#define CONV_SOLID_COL 256
+enum {
+	CONV_SOLID=0,
+	CONV_TRITONE,
+	CONV_TEXTURE,
+	CONV_CHUNK4,
+	CONV_SOLID_COL=256
+};
+
+enum {
+	TRI_GRID=0,
+	TRI_HLINE,
+	TRI_VLINE
+};
 
 struct GIFrame {
 	int delay;

@@ -40,15 +40,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 
 	ui.labSrc->setPixmap(QPixmap(256,192));
 	ui.labResult->setPixmap(QPixmap(256,192));
-/*
-	ui.cbScale->addItem("Real size", CONV_REAL);
-	ui.cbScale->addItem("Scale to width",CONV_WIDTH);
-	ui.cbScale->addItem("Scale to heigth",CONV_HEIGHT);
-	ui.cbScale->addItem("Scale to fit",CONV_SCALE);
-	ui.cbScale->addItem("Free zoom",CONV_ZOOM);
-	ui.cbScale->setCurrentIndex(0);
-	zoomMode = CONV_REAL;
-*/
+
 	ui.cbType->addItem("Solid",CONV_SOLID);
 	ui.cbType->addItem("Tritone",CONV_TRITONE);
 	ui.cbType->addItem("Texture",CONV_TEXTURE);
@@ -70,6 +62,10 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	ui.tbSave->addAction(ui.aSaveAni);
 	ui.tbSave->addAction(ui.aBatchScr);
 
+	ui.cbTriType->addItem("Grid",TRI_GRID);
+	ui.cbTriType->addItem("HLines",TRI_HLINE);
+	ui.cbTriType->addItem("VLines",TRI_VLINE);
+
 	ui.aSaveAni->setEnabled(false);
 	ui.aBatchScr->setEnabled(false);
 
@@ -87,7 +83,6 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.spFrame,SIGNAL(valueChanged(int)),this,SLOT(setFrame(int)));
 	connect(ui.tbPlay,SIGNAL(clicked()),this,SLOT(playGif()));
 
-//	connect(ui.cbScale,SIGNAL(activated(int)),this,SLOT(chaZoomMode()));
 	connect(ui.tbSizeH,SIGNAL(released()),this,SLOT(chaZoomH()));
 	connect(ui.tbSizeW,SIGNAL(released()),this,SLOT(chaZoomW()));
 	connect(ui.tbSizeHW,SIGNAL(released()),this,SLOT(chaZoomHW()));
@@ -106,7 +101,7 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 	connect(ui.sbRed,SIGNAL(valueChanged(int)),this,SLOT(convert()));
 	connect(ui.sbGreen,SIGNAL(valueChanged(int)),this,SLOT(convert()));
 	connect(ui.sbBlue,SIGNAL(valueChanged(int)),this,SLOT(convert()));
-//	connect(ui.tbCrop,SIGNAL(toggled(bool)),this,SLOT(setCrop()));
+	connect(ui.cbTriType,SIGNAL(currentIndexChanged(int)),this,SLOT(convert()));
 
 	connect(ui.brightLevel,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetBrg()));
 	connect(ui.contrast,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetCon()));
@@ -902,7 +897,7 @@ QByteArray doSolidCol(QImage src) {
 
 // tritone
 
-QByteArray doTritone(QImage& src, int lev1, int lev2) {
+QByteArray doTritone(QImage& src, int lev1, int lev2, int type) {
 	QByteArray res = emptyScreen();
 	int x,y,lev;
 	if (lev1 > lev2) {
@@ -912,8 +907,6 @@ QByteArray doTritone(QImage& src, int lev1, int lev2) {
 	}
 	int xmax = src.width();
 	int ymax = src.height();
-//	if (xmax > 256) xmax = 256;
-//	if (ymax > 192) ymax = 192;
 	unsigned char mask = 0x80;
 	int adr = 0;
 	for (y = 0; y < ymax; y++) {
@@ -923,8 +916,18 @@ QByteArray doTritone(QImage& src, int lev1, int lev2) {
 				/* no dot */
 			} else if (lev > lev2) {
 				res[adr] = res[adr] | mask;
-			} else if ((x ^ y) & 1) {
-				res[adr] = res[adr] | mask;
+			} else {
+				switch (type) {
+					case TRI_GRID:
+						if ((x ^ y) & 1) res[adr] = res[adr] | mask;
+						break;
+					case TRI_HLINE:
+						if (y & 1) res[adr] = res[adr] | mask;
+						break;
+					case TRI_VLINE:
+						if (x & 1) res[adr] = res[adr] | mask;
+						break;
+				}
 			}
 			nextDot(mask, adr);
 		}
@@ -985,14 +988,14 @@ QByteArray doChunk44(QImage& src) {
 	return res;
 }
 
-QByteArray getConverted(QImage toc, int convType, int l1, int l2) {
+QByteArray getConverted(QImage toc, int convType, int l1, int l2, int triType) {
 	QByteArray res;
 	switch (convType) {
 		case CONV_SOLID:
 			res = doSolid(toc);
 			break;
 		case CONV_TRITONE:
-			res = doTritone(toc, l1, l2);
+			res = doTritone(toc, l1, l2, triType);
 			break;
 		case CONV_TEXTURE:
 			res = doTexture(toc);
@@ -1035,7 +1038,7 @@ QImage MWin::doConvert(QImage toc) {
 			toc.setPixel(x,y,col);
 		}
 	}
-	QByteArray dat = getConverted(toc, convType, ui.triMin->value(), ui.triMax->value());
+	QByteArray dat = getConverted(toc, convType, ui.triMin->value(), ui.triMax->value(), ui.cbTriType->itemData(ui.cbTriType->currentIndex()).toInt());
 	switch (convType) {
 		case CONV_CHUNK4:
 			rch = dat;
