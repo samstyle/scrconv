@@ -11,6 +11,7 @@ class MLabel : public QLabel {
 		float magX;
 		float magY;
 		void shift(int, int);
+		void setMag(double, double);
 	signals:
 		void mMove();
 		void mZoom();

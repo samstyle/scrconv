@@ -34,7 +34,7 @@ struct GIFrame {
 class MWin : public QMainWindow {
 	Q_OBJECT
 	public:
-		MWin(QWidget*);
+		MWin(QWidget* = NULL);
 	private:
 		Ui::MainWindow ui;
 		QImage img;		// original
@@ -43,6 +43,7 @@ class MWin : public QMainWindow {
 		QList<GIFrame> gif;
 		int curFrame;
 		int convType;
+		int scw, sch;
 		bool isGif;
 		bool isPlaying;
 		QImage getSource();

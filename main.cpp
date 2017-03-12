@@ -48,11 +48,21 @@ void MLabel::wheelEvent(QWheelEvent* ev) {
 			magY /= 1.1;
 		}
 	} else {
-		if ((magX < 4.0) && (magY < 4.0)) {
+		if ((magX < 4.0) && (magY < 16.0)) {
 			magX *= 1.1;
 			magY *= 1.1;
 		}
 	}
+	dx = (dx + 128) * magX / oldMagX - 128;
+	dy = (dy + 96) * magY / oldMagY - 96;
+	emit mZoom();
+}
+
+void MLabel::setMag(double xmag, double ymag) {
+	float oldMagX = magX;
+	float oldMagY = magY;
+	magX = xmag;
+	magY = ymag;
 	dx = (dx + 128) * magX / oldMagX - 128;
 	dy = (dy + 96) * magY / oldMagY - 96;
 	emit mZoom();

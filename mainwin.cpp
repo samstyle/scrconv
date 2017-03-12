@@ -35,8 +35,11 @@ unsigned char texture_bin[] = {
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
+MWin::MWin(QWidget* par):QMainWindow(par) {
 	ui.setupUi(this);
+
+	scw = 256;
+	sch = 192;
 
 	ui.labSrc->setPixmap(QPixmap(256,192));
 	ui.labResult->setPixmap(QPixmap(256,192));
@@ -115,11 +118,29 @@ MWin::MWin(QWidget* par = NULL):QMainWindow(par) {
 }
 
 void MWin::keyPressEvent(QKeyEvent* ev) {
-	switch(ev->key()) {
-		case Qt::Key_W: ui.labSrc->shift(0, 1); break;
-		case Qt::Key_A: ui.labSrc->shift(1, 0); break;
-		case Qt::Key_S: ui.labSrc->shift(0, -1); break;
-		case Qt::Key_D: ui.labSrc->shift(-1, 0); break;
+	if (ev->modifiers() & Qt::ControlModifier) {
+		switch (ev->key()) {
+			case Qt::Key_2: ui.labSrc->setMag(0.5, 0.5); break;
+			case Qt::Key_3: ui.labSrc->setMag(0.3, 0.3); break;
+			case Qt::Key_4: ui.labSrc->setMag(0.25, 0.25); break;
+		}
+	} else if (ev->modifiers() & Qt::AltModifier) {
+		switch(ev->key()) {
+			case Qt::Key_1: scw = 256; sch = 192; convert(); break;
+			case Qt::Key_2: scw = 512; sch = 192*2; convert(); break;
+			case Qt::Key_3: scw = 768; sch = 192*3; convert(); break;
+		}
+	} else {
+		switch(ev->key()) {
+			case Qt::Key_W: ui.labSrc->shift(0, 1); break;
+			case Qt::Key_A: ui.labSrc->shift(1, 0); break;
+			case Qt::Key_S: ui.labSrc->shift(0, -1); break;
+			case Qt::Key_D: ui.labSrc->shift(-1, 0); break;
+			case Qt::Key_1: ui.labSrc->setMag(1.0, 1.0); break;
+			case Qt::Key_2: ui.labSrc->setMag(2.0, 2.0); break;
+			case Qt::Key_3: ui.labSrc->setMag(3.0, 3.0); break;
+			case Qt::Key_4: ui.labSrc->setMag(4.0, 4.0); break;
+		}
 	}
 }
 
@@ -1016,7 +1037,9 @@ QByteArray getConverted(QImage toc, int convType, int l1, int l2, int triType) {
 void MWin::convert() {
 	if (src.isNull()) return;
 	dst = doConvert(src);
-	ui.labResult->setPixmap(QPixmap::fromImage(dst));
+	ui.labResult->setFixedSize(scw,sch);
+	ui.labResult->setPixmap(QPixmap::fromImage(dst).scaled(scw, sch));
+	resize(minimumSize());
 }
 
 QImage MWin::doConvert(QImage toc) {
