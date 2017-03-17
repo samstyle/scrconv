@@ -13,11 +13,15 @@ enum {
 };
 
 enum {
-	CONV_SOLID=0,
+	CONV_SEPARATOR = -1,
+	CONV_SOLID = 0,
 	CONV_TRITONE,
 	CONV_TEXTURE,
 	CONV_CHUNK4,
-	CONV_SOLID_COL=256
+	CONV_SOLID_COL,
+	CONV_HWMC,
+	CONV_3LMC,
+	CONV_END
 };
 
 enum {
@@ -47,10 +51,8 @@ class MWin : public QMainWindow {
 		bool isGif;
 		bool isPlaying;
 		QImage getSource();
-		QImage doConvert(QImage);
 
 		QByteArray scr;
-		QByteArray rch;
 
 	private slots:
 		void openFile();
@@ -60,11 +62,14 @@ class MWin : public QMainWindow {
 		void saveBatch();
 
 		void saveScreen(QString,bool);
+		void saveHWMC(QString);
 		void saveChunk(QString);
 
 		void setFrame(int);
 		void playGif();
 		void playFrame();
+
+		void setZoom(QAction*);
 
 		void resetB();
 		void resetR();

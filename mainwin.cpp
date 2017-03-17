@@ -1,5 +1,13 @@
 #include "mainwin.h"
 
+struct convMethod {
+	int id;
+	QString name;
+	QByteArray(*conv)(QImage&);
+	QImage(*getimg)(QByteArray);
+	void(*save)(QByteArray);
+};
+
 unsigned char texture_bin[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -35,113 +43,17 @@ unsigned char texture_bin[] = {
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-MWin::MWin(QWidget* par):QMainWindow(par) {
-	ui.setupUi(this);
 
-	scw = 256;
-	sch = 192;
+// zoom
 
-	ui.labSrc->setPixmap(QPixmap(256,192));
-	ui.labResult->setPixmap(QPixmap(256,192));
-
-	ui.cbType->addItem("Solid",CONV_SOLID);
-	ui.cbType->addItem("Tritone",CONV_TRITONE);
-	ui.cbType->addItem("Texture",CONV_TEXTURE);
-	ui.cbType->addItem("Chunks 4x4",CONV_CHUNK4);
-	ui.cbType->insertSeparator(255);
-	ui.cbType->addItem("Solid color",CONV_SOLID_COL);
-	ui.cbType->setCurrentIndex(0);
-	chaMode();
-
-	QAction* sep1 = new QAction(NULL);
-	QAction* sep2 = new QAction(NULL);
-	sep1->setSeparator(true);
-	sep2->setSeparator(true);
-	ui.tbSave->addAction(ui.aBWscreen);
-	ui.tbSave->addAction(sep1);
-	ui.tbSave->addAction(ui.aSaveScr);
-	ui.tbSave->addAction(ui.aSavePng);
-	ui.tbSave->addAction(sep2);
-	ui.tbSave->addAction(ui.aSaveAni);
-	ui.tbSave->addAction(ui.aBatchScr);
-
-	ui.cbTriType->addItem("Grid",TRI_GRID);
-	ui.cbTriType->addItem("HLines",TRI_HLINE);
-	ui.cbTriType->addItem("VLines",TRI_VLINE);
-
-	ui.aSaveAni->setEnabled(false);
-	ui.aBatchScr->setEnabled(false);
-
-	isPlaying = false;
-	isGif = false;
-	curFrame = 0;
-
-	connect(ui.tbOpen,SIGNAL(clicked()),this,SLOT(openFile()));
-
-	connect(ui.aSaveScr,SIGNAL(triggered()),this,SLOT(saveScr()));
-	connect(ui.aSaveAni,SIGNAL(triggered()),this,SLOT(saveAni()));
-	connect(ui.aBatchScr,SIGNAL(triggered()),this,SLOT(saveBatch()));
-	connect(ui.aSavePng,SIGNAL(triggered()),this,SLOT(savePng()));
-
-	connect(ui.spFrame,SIGNAL(valueChanged(int)),this,SLOT(setFrame(int)));
-	connect(ui.tbPlay,SIGNAL(clicked()),this,SLOT(playGif()));
-
-	connect(ui.tbSizeH,SIGNAL(released()),this,SLOT(chaZoomH()));
-	connect(ui.tbSizeW,SIGNAL(released()),this,SLOT(chaZoomW()));
-	connect(ui.tbSizeHW,SIGNAL(released()),this,SLOT(chaZoomHW()));
-	connect(ui.tbSizeOrig,SIGNAL(released()),this,SLOT(chaZoomOrig()));
-	connect(ui.tbSizeFit,SIGNAL(released()),this,SLOT(chaZoomFit()));
-	connect(ui.tbShowGrid,SIGNAL(released()),this,SLOT(convert()));
-	connect(ui.cbType,SIGNAL(activated(int)),this,SLOT(chaMode()));
-
-	connect(ui.labSrc,SIGNAL(mMove()),this,SLOT(chaZoom()));
-	connect(ui.labSrc,SIGNAL(mZoom()),this,SLOT(chaZoom()));
-
-	connect(ui.brightLevel,SIGNAL(valueChanged(int)),this,SLOT(convert()));
-	connect(ui.contrast,SIGNAL(valueChanged(int)),this,SLOT(convert()));
-	connect(ui.triMax,SIGNAL(valueChanged(int)),this,SLOT(convert()));
-	connect(ui.triMin,SIGNAL(valueChanged(int)),this,SLOT(convert()));
-	connect(ui.sbRed,SIGNAL(valueChanged(int)),this,SLOT(convert()));
-	connect(ui.sbGreen,SIGNAL(valueChanged(int)),this,SLOT(convert()));
-	connect(ui.sbBlue,SIGNAL(valueChanged(int)),this,SLOT(convert()));
-	connect(ui.cbTriType,SIGNAL(currentIndexChanged(int)),this,SLOT(convert()));
-
-	connect(ui.brightLevel,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetBrg()));
-	connect(ui.contrast,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetCon()));
-	connect(ui.sbBlue,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetB()));
-	connect(ui.sbRed,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetR()));
-	connect(ui.sbGreen,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetG()));
-	connect(ui.triMax, SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetTMax()));
-	connect(ui.triMin, SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetTMin()));
-
-//	ui.statusbar->showMessage(QString("Qt %0").arg(qVersion()));
-}
-
-void MWin::keyPressEvent(QKeyEvent* ev) {
-	if (ev->modifiers() & Qt::ControlModifier) {
-		switch (ev->key()) {
-			case Qt::Key_2: ui.labSrc->setMag(0.5, 0.5); break;
-			case Qt::Key_3: ui.labSrc->setMag(0.3, 0.3); break;
-			case Qt::Key_4: ui.labSrc->setMag(0.25, 0.25); break;
-		}
-	} else if (ev->modifiers() & Qt::AltModifier) {
-		switch(ev->key()) {
-			case Qt::Key_1: scw = 256; sch = 192; convert(); break;
-			case Qt::Key_2: scw = 512; sch = 192*2; convert(); break;
-			case Qt::Key_3: scw = 768; sch = 192*3; convert(); break;
-		}
-	} else {
-		switch(ev->key()) {
-			case Qt::Key_W: ui.labSrc->shift(0, 1); break;
-			case Qt::Key_A: ui.labSrc->shift(1, 0); break;
-			case Qt::Key_S: ui.labSrc->shift(0, -1); break;
-			case Qt::Key_D: ui.labSrc->shift(-1, 0); break;
-			case Qt::Key_1: ui.labSrc->setMag(1.0, 1.0); break;
-			case Qt::Key_2: ui.labSrc->setMag(2.0, 2.0); break;
-			case Qt::Key_3: ui.labSrc->setMag(3.0, 3.0); break;
-			case Qt::Key_4: ui.labSrc->setMag(4.0, 4.0); break;
-		}
-	}
+void MWin::setZoom(QAction* act) {
+	int zf = act->data().toInt();
+	if ((zf < 1) || (zf > 3)) return;
+	scw = 256 * zf;
+	sch = 192 * zf;
+	ui.labResult->setFixedSize(scw, sch);
+	ui.labResult->setPixmap(QPixmap::fromImage(dst).scaled(scw, sch));
+	adjustSize();
 }
 
 // reset levels
@@ -195,18 +107,28 @@ int getCol(QRgb col) {
 	if (qBlue(col) > 80) res |= 1;
 	if (qRed(col) > 80) res |= 2;
 	if (qGreen(col) > 80) res |= 4;
-//	if ((qBlue(col) > 160) || (qRed(col) > 160) || (qGreen(col > 160))) res |= 8;
+	int brg = (qBlue(col) > 160) ? 1 : 0;
+	brg += (qRed(col) > 160) ? 1 : 0;
+	brg += (qGreen(col) > 160) ? 1 : 0;
+	if (brg > 1) res |= 8;
 	return res;
 }
 
-unsigned char getCols(QImage& src, int x, int y, QRgb& inkcol, QRgb& papcol) {
+unsigned char getCols(QImage& src, int x, int y, QRgb& inkcol, QRgb& papcol, int lmask = 0xff, int wid = 8) {
 	QMap<QRgb,int> map;
+	QRgb col;
 	int lin,bit;
+	if (wid < 8) wid = 8;
+	if (wid > 256) wid = 256;
 	// make box color map
-	for (lin = 0; lin < 8; lin++) {
-		for (bit = 0; bit < 8; bit++) {
-			map[src.pixel(x + bit, y + lin)]++;
+	for (lin = 0; lin < wid; lin++) {
+		if (lmask & 0x80) {
+			for (bit = 0; bit < 8; bit++) {
+				col = src.pixel(x + bit, y + lin);
+				map[col]++;
+			}
 		}
+		lmask <<= 1;
 	}
 	// select 2 colors
 	QList<QRgb> cols = map.keys();
@@ -214,7 +136,7 @@ unsigned char getCols(QImage& src, int x, int y, QRgb& inkcol, QRgb& papcol) {
 	int pap = 0;
 	inkcol = qRgb(0,0,0);
 	papcol = inkcol;
-	foreach(QRgb col, cols) {
+	foreach(col, cols) {
 		if (map.value(col) > ink) {
 			pap = ink;
 			ink = map.value(col);
@@ -226,7 +148,7 @@ unsigned char getCols(QImage& src, int x, int y, QRgb& inkcol, QRgb& papcol) {
 		}
 	}
 	if (inkcol == qRgb(0,0,0)) {
-		QRgb col = inkcol;
+		col = inkcol;
 		inkcol = papcol;
 		papcol = col;
 	}
@@ -496,15 +418,21 @@ void MWin::savePng() {
 
 void MWin::saveScr() {
 	if (img.isNull()) return;
-	QString path;
-	if (convType == CONV_CHUNK4) {
-		path = QFileDialog::getSaveFileName(this,"Save chunks","","Chunk screen (*.rch)");
-		if (path.isEmpty()) return;
-		saveChunk(path);
-	} else {
-		path = QFileDialog::getSaveFileName(this,"Save screen","","ZX screen (*.scr)");
-		if (path.isEmpty()) return;
-		saveScreen(path,!ui.aBWscreen->isChecked());
+	QString path = QFileDialog::getSaveFileName(this,"Save...");
+	if (path.isEmpty()) return;
+	switch (convType) {
+		case CONV_CHUNK4:
+			saveChunk(path);
+			break;
+		case CONV_HWMC:
+			saveHWMC(path);
+			break;
+		case CONV_3LMC:
+			saveScreen(path, 0);
+			break;
+		default:
+			saveScreen(path,!ui.aBWscreen->isChecked());
+			break;
 	}
 }
 
@@ -542,7 +470,7 @@ void MWin::saveBatch() {
 void MWin::saveChunk(QString path) {
 	QFile file(path);
 	if (file.open(QFile::WriteOnly)) {
-		file.write(rch.data(), 0x300);
+		file.write(scr.data(), 0x300);
 	} else {
 		QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
 	}
@@ -552,6 +480,15 @@ void MWin::saveScreen(QString path, bool col) {
 	QFile file(path);
 	if (file.open(QFile::WriteOnly)) {
 		file.write(scr.data(),col ? 0x1b00 : 0x1800);
+	} else {
+		QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
+	}
+}
+
+void MWin::saveHWMC(QString path) {
+	QFile file(path);
+	if (file.open(QFile::WriteOnly)) {
+		file.write(scr.data(), 0x3000);
 	} else {
 		QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
 	}
@@ -621,9 +558,6 @@ void MWin::chaMode() {
 	convType = ui.cbType->itemData(ui.cbType->currentIndex()).toInt();
 	ui.triMax->setEnabled(convType == CONV_TRITONE);
 	ui.triMin->setEnabled(convType == CONV_TRITONE);
-//	ui.sbRed->setEnabled(convType & 256);
-//	ui.sbGreen->setEnabled(convType & 256);
-//	ui.sbBlue->setEnabled(convType & 256);
 	convert();
 }
 
@@ -670,11 +604,18 @@ void MWin::chaZoomFit() {
 }
 
 QImage MWin::getSource() {
-	int x = ui.labSrc->dx / ui.labSrc->magX;
-	int y = ui.labSrc->dy / ui.labSrc->magY;
-	int dx = 256 / ui.labSrc->magX;
-	int dy = 192 / ui.labSrc->magY;
-	return img.copy(x, y, dx, dy).scaled(256, 192);
+	QImage res;
+	if (img.isNull()) {
+		res = QImage(256,192,QImage::Format_RGB888);
+		res.fill(Qt::black);
+	} else {
+		int x = ui.labSrc->dx / ui.labSrc->magX;
+		int y = ui.labSrc->dy / ui.labSrc->magY;
+		int dx = 256 / ui.labSrc->magX;
+		int dy = 192 / ui.labSrc->magY;
+		res = img.copy(x, y, dx, dy).scaled(256, 192);
+	}
+	return res;
 }
 
 void MWin::chaZoom() {
@@ -693,12 +634,7 @@ int getGray(int lev, int brg, int cont) {
 
 QRgb rgb2zx(QRgb col) {
 	QRgb res;
-/*
-	int y = 0.299 * red + 0.587 * grn + 0.114 * blu;
-	int u = -0.14713 * red - 0.28886 * grn + 0.436 * blu + 128;
-	int v = 0.615 * red - 0.51499 * grn - 0.10001 * blu + 128;
-*/
-	int min,max;	// h
+	int min,max;
 	int red = qRed(col);
 	int grn = qGreen(col);
 	int blu = qBlue(col);
@@ -713,39 +649,8 @@ QRgb rgb2zx(QRgb col) {
 	if ((max - min) < 32) {
 		res = (qGray(col) > 128) ? qRgb(128,128,128) : qRgb(0,0,0);
 	} else {
-		res = qRgb(red & 128, grn & 128, blu & 128);
+		res = qRgb(red & 0x80, grn & 0x80, blu & 0x80);
 	}
-
-/*
-	if (min == max) {
-		h = 0;
-	} else {
-		if (max == red) {
-			h = 60 * (grn - blu) / (max - min);
-			if (h < 0) h += 360;
-		} else if (max == grn) {
-			h = 60 * (blu - red) / (max - min) + 120;
-		} else {
-			h = 60 * (red - grn) / (max - min) + 240;
-		}
-	}
-
-	if (max < 80) {
-		res = qRgb(0,0,0);
-	} else if ((max - min) < 64) {
-		res = (max > 128) ? qRgb(128,128,128) : qRgb(0,0,0);
-	} else {
-		if (h < 30) res = qRgb(128,0,0);	// red (orange)
-		else if (h < 90) res = qRgb(128,128,0);	// yellow
-		else if (h < 150) res = qRgb(0,128,0);	// green
-		else if (h < 210) res = qRgb(0,128,128);// cyan
-		else if (h < 270) res = qRgb(0,0,128);	// blue
-		else if (h < 330) res = qRgb(128,0,128);// magenta
-		else res = qRgb(128,0,0);		// red again
-	}
-
-//	res = qRgb(red & 128, grn & 128, blu & 128);
-*/
 	return res;
 }
 
@@ -822,6 +727,34 @@ QImage scr2img(QByteArray data) {
 	return res;
 }
 
+QImage hwmc2img(QByteArray data) {
+	QImage res(256,192,QImage::Format_RGB888);
+	res.fill(qRgb(100,100,100));
+	int adr = 0;
+	int x,y;
+	unsigned char iidx,pidx;
+	unsigned char mask = 0x80;
+	QRgb ink = qRgb(0,0,0);
+	QRgb pap = ink;
+	for (y = 0; y < 192; y++) {
+		for (x = 0; x < 256; x++) {
+			if ((x & 7) == 0) {
+				iidx = data[adr + 0x1800] & 7;
+				pidx = (data[adr  + 0x1800] & 0x38) >> 3;
+				if (data[adr + 0x1800] & 0x40) {
+					iidx |= 8;
+					pidx |= 8;
+				}
+				ink = colTab[iidx];
+				pap = colTab[pidx];
+			}
+			res.setPixel(x, y, (data[adr] & mask) ? ink : pap);
+			nextDot(mask, adr);
+		}
+	}
+	return res;
+}
+
 const int dChkTab[] = {0x00, 0x50, 0xa0, 0xf8};
 
 void putChunk(QImage& img, int x, int y, int chk) {
@@ -880,7 +813,7 @@ QByteArray doSolid(QImage& src) {
 
 // solid.color
 
-QByteArray doSolidCol(QImage src) {
+QByteArray doSolidCol(QImage& src) {
 	QByteArray res = emptyScreen();
 	poster(src);
 	int x,y,lin,bit;
@@ -918,7 +851,9 @@ QByteArray doSolidCol(QImage src) {
 
 // tritone
 
-QByteArray doTritone(QImage& src, int lev1, int lev2, int type) {
+int lev1, lev2, trit;
+
+QByteArray doTritone(QImage& src) {
 	QByteArray res = emptyScreen();
 	int x,y,lev;
 	if (lev1 > lev2) {
@@ -938,7 +873,7 @@ QByteArray doTritone(QImage& src, int lev1, int lev2, int type) {
 			} else if (lev > lev2) {
 				res[adr] = res[adr] | mask;
 			} else {
-				switch (type) {
+				switch (trit) {
 					case TRI_GRID:
 						if ((x ^ y) & 1) res[adr] = res[adr] | mask;
 						break;
@@ -963,8 +898,6 @@ QByteArray doTexture(QImage& src) {
 	int x,y,lev;
 	int xmax = src.width();
 	int ymax = src.height();
-//	if (xmax > 256) xmax = 256;
-//	if (ymax > 192) ymax = 192;
 	unsigned char mask = 0x80;
 	int adr = 0;
 	for (y = 0; y < ymax; y++) {
@@ -1009,81 +942,298 @@ QByteArray doChunk44(QImage& src) {
 	return res;
 }
 
-QByteArray getConverted(QImage toc, int convType, int l1, int l2, int triType) {
-	QByteArray res;
-	switch (convType) {
-		case CONV_SOLID:
-			res = doSolid(toc);
-			break;
-		case CONV_TRITONE:
-			res = doTritone(toc, l1, l2, triType);
-			break;
-		case CONV_TEXTURE:
-			res = doTexture(toc);
-			break;
-		case CONV_SOLID_COL:
-			res = doSolidCol(toc);
-			break;
-		case CONV_CHUNK4:
-			res = doChunk44(toc);
-			break;
-		default:
-			res = emptyScreen();
-			break;
+// atr/8dot multicolor
+
+QByteArray doHWMC(QImage& src) {
+	QByteArray res(0x3000, 0x00);
+	QRgb col;
+	poster(src);
+	int xmax = src.width();
+	int ymax = src.height();
+	int x,y, bit;
+	int adr = 0;
+	unsigned char mask = 0x01;
+	unsigned char atr;
+	unsigned char scrbyte;
+	QRgb ink, pap;
+	for (y = 0; y < ymax; y++) {
+		for (x = 0; x < xmax; x += 8) {
+			atr = getCols(src, x, y, ink, pap, 0x80);		// 8 dot atr
+			scrbyte = 0;
+			for (bit = 0; bit < 8; bit++) {
+				scrbyte <<= 1;
+				col = src.pixel(x + bit, y);
+				scrbyte |= (col == ink) ? 1 : 0;
+			}
+			res[adr] = scrbyte;
+			res[adr + 0x1800] = atr;
+			mask = 0x00;
+			nextDot(mask, adr);
+		}
 	}
 	return res;
 }
 
+// 3Lines RGB multicolor
+
+QByteArray do3LMC(QImage& src) {
+	QByteArray res(0x1800, 0x00);
+	QRgb col;
+	poster(src);
+	int xmax = src.width();
+	int ymax = src.height();
+	int x,y;
+	unsigned char bt;
+	unsigned char mask = 0x80;
+	int adr = 0;
+	int lev;
+	for (y = 0; y < ymax; y++) {
+		for (x = 0; x < xmax; x++) {
+			col = src.pixel(x, y);
+			switch(y % 3) {
+				case 0: lev = qRed(col); break;
+				case 1: lev = qGreen(col); break;
+				default: lev = qBlue(col); break;
+			}
+			if (lev & 0x80) {
+				bt = res[adr];
+				bt |= mask;
+				res[adr] = bt;
+
+			}
+			nextDot(mask, adr);
+		}
+	}
+	return res;
+}
+
+QImage tlmc2img(QByteArray data) {
+	QImage res(256, 192, QImage::Format_RGB888);
+	res.fill(Qt::black);
+	QRgb col;
+	int adr = 0;
+	unsigned char mask = 0x80;
+	int x,y;
+	for (y = 0; y < 192; y++) {
+		switch (y % 3) {
+			case 0: col = qRgb(160, 0, 0); break;
+			case 1: col = qRgb(0, 160, 0); break;
+			default: col = qRgb(0, 0, 160); break;
+		}
+		for (x = 0; x < 256; x++) {
+			if (data[adr] & mask) {
+				res.setPixel(x, y, col);
+			}
+			nextDot(mask, adr);
+		}
+	}
+	return res;
+}
+
+//
+
+convMethod convTab[] = {
+	{CONV_SOLID, "Solid", doSolid, scr2img, NULL},
+	{CONV_TRITONE, "Tritone", doTritone, scr2img, NULL},
+	{CONV_TEXTURE, "Texture", doTexture, scr2img, NULL},
+	{CONV_CHUNK4, "Chunk 4x4", doChunk44, rch2img, NULL},
+	{CONV_SEPARATOR, "", NULL, NULL, NULL},
+	{CONV_SOLID_COL, "Solid color", doSolidCol, scr2img, NULL},
+	{CONV_SEPARATOR, "", NULL, NULL, NULL},
+	{CONV_HWMC, "HW multicolor", doHWMC, hwmc2img, NULL},
+	{CONV_3LMC, "3Line multicolor", do3LMC, tlmc2img, NULL},
+	{CONV_END, "", NULL, NULL, NULL}
+};
+
+convMethod* findMethod(int type) {
+	int idx = 0;
+	while ((convTab[idx].id != CONV_END) && (convTab[idx].id != type)) {
+		idx++;
+	}
+	return &convTab[idx];
+}
+
 void MWin::convert() {
-	if (src.isNull()) return;
-	dst = doConvert(src);
+	if (src.isNull()) {
+		dst = QImage(256, 192, QImage::Format_RGB888);
+		dst.fill(Qt::black);
+	} else {
+		int x,y,red,grn,blu;
+		QRgb col;
+		QImage toc = src;
+		int rlev = ui.sbRed->value();
+		int glev = ui.sbGreen->value();
+		int blev = ui.sbBlue->value();
+		int brg = ui.brightLevel->value();
+		int con = ui.contrast->value();
+		for (y = 0; y < toc.height(); y++) {
+			for (x = 0; x < toc.width(); x++) {
+				col = toc.pixel(x,y);
+				red = getGray(qRed(col) * rlev / 100,brg,con);
+				grn = getGray(qGreen(col) * glev / 100,brg,con);
+				blu = getGray(qBlue(col) * blev / 100,brg,con);
+				col = qRgb(red,grn,blu);
+				toc.setPixel(x,y,col);
+			}
+		}
+		lev1 = ui.triMin->value();
+		lev2 = ui.triMax->value();
+		trit = ui.cbTriType->itemData(ui.cbTriType->currentIndex()).toInt();
+		convMethod* mtd = findMethod(convType);
+		if (mtd == NULL) {
+			dst = QImage(256, 192, QImage::Format_RGB888);
+			dst.fill(Qt::gray);
+		} else {
+			if (mtd->conv) {
+				scr = mtd->conv(toc);
+				if (mtd->getimg) {
+					dst = mtd->getimg(scr);
+				} else {
+					dst = QImage(256, 192, QImage::Format_RGB888);
+					dst.fill(Qt::gray);
+				}
+			} else {
+				scr.clear();
+				dst = QImage(256, 192, QImage::Format_RGB888);
+				dst.fill(Qt::gray);
+			}
+		}
+		if (ui.tbShowGrid->isChecked()) {
+			QPainter pnt;
+			pnt.begin(&dst);
+			pnt.setPen(qRgb(60,60,60));
+			for (x = 0; x < dst.width(); x += 8) {
+				pnt.drawLine(x, 0, x, dst.height());
+			}
+			for (y = 0; y < dst.height(); y += 8) {
+				pnt.drawLine(0, y, dst.width(), y);
+			}
+			pnt.end();
+		}
+	}
 	ui.labResult->setFixedSize(scw,sch);
 	ui.labResult->setPixmap(QPixmap::fromImage(dst).scaled(scw, sch));
 	resize(minimumSize());
 }
 
-QImage MWin::doConvert(QImage toc) {
-	int x,y,red,grn,blu;
-	QImage res;
-	QRgb col;
-	int rlev = ui.sbRed->value();
-	int glev = ui.sbGreen->value();
-	int blev = ui.sbBlue->value();
-	int brg = ui.brightLevel->value();
-	int con = ui.contrast->value();
-	for (y = 0; y < toc.height(); y++) {
-		for (x = 0; x < toc.width(); x++) {
-			col = toc.pixel(x,y);
-			red = getGray(qRed(col) * rlev / 100,brg,con);
-			grn = getGray(qGreen(col) * glev / 100,brg,con);
-			blu = getGray(qBlue(col) * blev / 100,brg,con);
-			col = qRgb(red,grn,blu);
-			toc.setPixel(x,y,col);
-		}
-	}
-	QByteArray dat = getConverted(toc, convType, ui.triMin->value(), ui.triMax->value(), ui.cbTriType->itemData(ui.cbTriType->currentIndex()).toInt());
-	switch (convType) {
-		case CONV_CHUNK4:
-			rch = dat;
-			res = rch2img(dat);
-			break;
-		default:
-			scr = dat;
-			res = scr2img(dat);
-			break;
-	}
-	if (ui.tbShowGrid->isChecked()) {
-		QPainter pnt;
-		pnt.begin(&res);
-		pnt.setPen(qRgb(60,60,60));
-		for (x = 0; x < res.width(); x += 8) {
-			pnt.drawLine(x, 0, x, res.height());
-		}
-		for (y = 0; y < res.height(); y += 8) {
-			pnt.drawLine(0, y, res.width(), y);
-		}
-		pnt.end();
-	}
+MWin::MWin(QWidget* par):QMainWindow(par) {
+	ui.setupUi(this);
 
-	return res;
+	scw = 256 * 2;
+	sch = 192 * 2;
+
+	ui.labSrc->setPixmap(QPixmap(256,192));
+	ui.labResult->setPixmap(QPixmap(256,192));
+
+	int idx = 0;
+	while (convTab[idx].id != CONV_END) {
+		if (convTab[idx].id == CONV_SEPARATOR) {
+			ui.cbType->insertSeparator(255);
+		} else {
+			ui.cbType->addItem(convTab[idx].name, convTab[idx].id);
+		}
+		idx++;
+	}
+	ui.cbType->setCurrentIndex(0);
+	chaMode();
+
+	ui.actX1->setData(1);
+	ui.actX2->setData(2);
+	ui.actX3->setData(3);
+	ui.tbZoom->addAction(ui.actX1);
+	ui.tbZoom->addAction(ui.actX2);
+	ui.tbZoom->addAction(ui.actX3);
+
+	QAction* sep1 = new QAction(NULL);
+	QAction* sep2 = new QAction(NULL);
+	sep1->setSeparator(true);
+	sep2->setSeparator(true);
+	ui.tbSave->addAction(ui.aBWscreen);
+	ui.tbSave->addAction(sep1);
+	ui.tbSave->addAction(ui.aSaveScr);
+	ui.tbSave->addAction(ui.aSavePng);
+	ui.tbSave->addAction(sep2);
+	ui.tbSave->addAction(ui.aSaveAni);
+	ui.tbSave->addAction(ui.aBatchScr);
+
+	ui.cbTriType->addItem("Grid",TRI_GRID);
+	ui.cbTriType->addItem("HLines",TRI_HLINE);
+	ui.cbTriType->addItem("VLines",TRI_VLINE);
+
+	ui.aSaveAni->setEnabled(false);
+	ui.aBatchScr->setEnabled(false);
+
+	isPlaying = false;
+	isGif = false;
+	curFrame = 0;
+
+	connect(ui.tbOpen,SIGNAL(clicked()),this,SLOT(openFile()));
+
+	connect(ui.aSaveScr,SIGNAL(triggered()),this,SLOT(saveScr()));
+	connect(ui.aSaveAni,SIGNAL(triggered()),this,SLOT(saveAni()));
+	connect(ui.aBatchScr,SIGNAL(triggered()),this,SLOT(saveBatch()));
+	connect(ui.aSavePng,SIGNAL(triggered()),this,SLOT(savePng()));
+
+	connect(ui.spFrame,SIGNAL(valueChanged(int)),this,SLOT(setFrame(int)));
+	connect(ui.tbPlay,SIGNAL(clicked()),this,SLOT(playGif()));
+
+	connect(ui.tbSizeH,SIGNAL(released()),this,SLOT(chaZoomH()));
+	connect(ui.tbSizeW,SIGNAL(released()),this,SLOT(chaZoomW()));
+	connect(ui.tbSizeHW,SIGNAL(released()),this,SLOT(chaZoomHW()));
+	connect(ui.tbSizeOrig,SIGNAL(released()),this,SLOT(chaZoomOrig()));
+	connect(ui.tbSizeFit,SIGNAL(released()),this,SLOT(chaZoomFit()));
+	connect(ui.tbShowGrid,SIGNAL(released()),this,SLOT(convert()));
+	connect(ui.cbType,SIGNAL(activated(int)),this,SLOT(chaMode()));
+
+	connect(ui.labSrc,SIGNAL(mMove()),this,SLOT(chaZoom()));
+	connect(ui.labSrc,SIGNAL(mZoom()),this,SLOT(chaZoom()));
+
+	connect(ui.brightLevel,SIGNAL(valueChanged(int)),this,SLOT(convert()));
+	connect(ui.contrast,SIGNAL(valueChanged(int)),this,SLOT(convert()));
+	connect(ui.triMax,SIGNAL(valueChanged(int)),this,SLOT(convert()));
+	connect(ui.triMin,SIGNAL(valueChanged(int)),this,SLOT(convert()));
+	connect(ui.sbRed,SIGNAL(valueChanged(int)),this,SLOT(convert()));
+	connect(ui.sbGreen,SIGNAL(valueChanged(int)),this,SLOT(convert()));
+	connect(ui.sbBlue,SIGNAL(valueChanged(int)),this,SLOT(convert()));
+	connect(ui.cbTriType,SIGNAL(currentIndexChanged(int)),this,SLOT(convert()));
+
+	connect(ui.brightLevel,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetBrg()));
+	connect(ui.contrast,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetCon()));
+	connect(ui.sbBlue,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetB()));
+	connect(ui.sbRed,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetR()));
+	connect(ui.sbGreen,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetG()));
+	connect(ui.triMax, SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetTMax()));
+	connect(ui.triMin, SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetTMin()));
+
+	connect(ui.tbZoom, SIGNAL(triggered(QAction*)), this, SLOT(setZoom(QAction*)));
+
+//	ui.statusbar->showMessage(QString("Qt %0").arg(qVersion()));
+}
+
+void MWin::keyPressEvent(QKeyEvent* ev) {
+	if (ev->modifiers() & Qt::ControlModifier) {
+		switch (ev->key()) {
+			case Qt::Key_1: ui.labSrc->setMag(1.0, 1.0); break;
+			case Qt::Key_2: ui.labSrc->setMag(0.5, 0.5); break;
+			case Qt::Key_3: ui.labSrc->setMag(0.3, 0.3); break;
+			case Qt::Key_4: ui.labSrc->setMag(0.25, 0.25); break;
+		}
+	} else if (ev->modifiers() & Qt::AltModifier) {
+		switch(ev->key()) {
+			case Qt::Key_1: setZoom(ui.actX1); break;
+			case Qt::Key_2: setZoom(ui.actX2); break;
+			case Qt::Key_3: setZoom(ui.actX3); break;
+		}
+	} else {
+		switch(ev->key()) {
+			case Qt::Key_W: ui.labSrc->shift(0, 1); break;
+			case Qt::Key_A: ui.labSrc->shift(1, 0); break;
+			case Qt::Key_S: ui.labSrc->shift(0, -1); break;
+			case Qt::Key_D: ui.labSrc->shift(-1, 0); break;
+			case Qt::Key_1: ui.labSrc->setMag(1.0, 1.0); break;
+			case Qt::Key_2: ui.labSrc->setMag(2.0, 2.0); break;
+			case Qt::Key_3: ui.labSrc->setMag(3.0, 3.0); break;
+			case Qt::Key_4: ui.labSrc->setMag(4.0, 4.0); break;
+		}
+	}
 }
