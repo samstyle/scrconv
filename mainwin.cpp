@@ -420,6 +420,7 @@ void MWin::saveScr() {
 	if (img.isNull()) return;
 	QString path = QFileDialog::getSaveFileName(this,"Save...");
 	if (path.isEmpty()) return;
+	QFile file(path);
 	switch (convType) {
 		case CONV_CHUNK4:
 			saveChunk(path);
@@ -429,6 +430,13 @@ void MWin::saveScr() {
 			break;
 		case CONV_3LMC:
 			saveScreen(path, 0);
+			break;
+		case CONV_TRICOLOR:
+			if (file.open(QFile::WriteOnly)) {
+				file.write(scr.data(), scr.size());
+			} else {
+				QMessageBox::warning(this,"Error","Can't open file for writing",QMessageBox::Ok);
+			}
 			break;
 		default:
 			saveScreen(path,!ui.aBWscreen->isChecked());
@@ -1030,6 +1038,52 @@ QImage tlmc2img(QByteArray data) {
 	return res;
 }
 
+// tricolor
+
+QByteArray do3col(QImage& src) {
+	QByteArray res(0x4800, 0x00);
+	// poster(src);
+	int adr = 0;
+	unsigned char mask = 0x80;
+	QRgb col;
+	int x,y;
+	int xmax = src.width();
+	int ymax = src.height();
+	for (y = 0; y < ymax; y++) {
+		for (x = 0; x < xmax; x++) {
+			col = src.pixel(x, y);
+			if (qRed(col) & 0x80)
+				res[adr] = res[adr] | mask;
+			if (qGreen(col) & 0x80)
+				res[adr + 0x1800] = res[adr + 0x1800] | mask;
+			if (qBlue(col) & 0x80)
+				res[adr + 0x3000] = res[adr + 0x3000] | mask;
+			nextDot(mask, adr);
+		}
+	}
+	return res;
+}
+
+QImage rgb2img(QByteArray data) {
+	QImage res(256, 192, QImage::Format_RGB888);
+	res.fill(Qt::black);
+	if (data.size() < 0x4800) return res;
+	int adr = 0;
+	unsigned char mask = 0x80;
+	int x,y;
+	int r,g,b;
+	for (y = 0; y < 192; y++) {
+		for (x = 0; x < 256; x++) {
+			r = (data[adr] & mask) ? 0xa0 : 0x00;
+			g = (data[adr + 0x1800] & mask) ? 0xa0 : 0x00;
+			b = (data[adr + 0x3000] & mask) ? 0xa0 : 0x00;
+			res.setPixel(x, y, qRgb(r,g,b));
+			nextDot(mask, adr);
+		}
+	}
+	return res;
+}
+
 //
 
 convMethod convTab[] = {
@@ -1042,6 +1096,8 @@ convMethod convTab[] = {
 	{CONV_SEPARATOR, "", NULL, NULL, NULL},
 	{CONV_HWMC, "HW multicolor", doHWMC, hwmc2img, NULL},
 	{CONV_3LMC, "3Line multicolor", do3LMC, tlmc2img, NULL},
+	{CONV_SEPARATOR, "", NULL, NULL, NULL},
+	{CONV_TRICOLOR, "3-color", do3col, rgb2img, NULL},
 	{CONV_END, "", NULL, NULL, NULL}
 };
 
