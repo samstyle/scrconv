@@ -859,7 +859,7 @@ QByteArray doSolidCol(QImage& src) {
 
 // tritone
 
-int lev1, lev2, trit;
+int lev1, lev2, trit, tinv;
 
 QByteArray doTritone(QImage& src) {
 	QByteArray res = emptyScreen();
@@ -883,13 +883,13 @@ QByteArray doTritone(QImage& src) {
 			} else {
 				switch (trit) {
 					case TRI_GRID:
-						if ((x ^ y) & 1) res[adr] = res[adr] | mask;
+						if (((x ^ y) & 1) ^ tinv) res[adr] = res[adr] | mask;
 						break;
 					case TRI_HLINE:
-						if (y & 1) res[adr] = res[adr] | mask;
+						if ((y & 1) ^ tinv) res[adr] = res[adr] | mask;
 						break;
 					case TRI_VLINE:
-						if (x & 1) res[adr] = res[adr] | mask;
+						if ((x & 1) ^ tinv) res[adr] = res[adr] | mask;
 						break;
 				}
 			}
@@ -1135,6 +1135,7 @@ void MWin::convert() {
 		lev1 = ui.triMin->value();
 		lev2 = ui.triMax->value();
 		trit = ui.cbTriType->itemData(ui.cbTriType->currentIndex()).toInt();
+		tinv = ui.cbInvertGrid->isChecked() ? 1 : 0;
 		convMethod* mtd = findMethod(convType);
 		if (mtd == NULL) {
 			dst = QImage(256, 192, QImage::Format_RGB888);
@@ -1252,6 +1253,7 @@ MWin::MWin(QWidget* par):QMainWindow(par) {
 	connect(ui.sbGreen,SIGNAL(valueChanged(int)),this,SLOT(convert()));
 	connect(ui.sbBlue,SIGNAL(valueChanged(int)),this,SLOT(convert()));
 	connect(ui.cbTriType,SIGNAL(currentIndexChanged(int)),this,SLOT(convert()));
+	connect(ui.cbInvertGrid,SIGNAL(stateChanged(int)), this, SLOT(convert()));
 
 	connect(ui.brightLevel,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetBrg()));
 	connect(ui.contrast,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetCon()));

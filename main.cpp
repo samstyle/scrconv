@@ -32,8 +32,10 @@ void MLabel::shift(int sx, int sy) {
 
 void MLabel::mouseMoveEvent(QMouseEvent *ev) {
 	if (!(ev->buttons() & Qt::LeftButton)) return;
-	dx -= (ev->x() - posx);
-	dy -= (ev->y() - posy);
+	if (!(ev->modifiers() & Qt::ControlModifier))
+		dx -= (ev->x() - posx);
+	if (!(ev->modifiers() & Qt::ShiftModifier))
+		dy -= (ev->y() - posy);
 	posx = ev->x();
 	posy = ev->y();
 	emit mMove();
