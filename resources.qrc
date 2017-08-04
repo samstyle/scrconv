@@ -15,5 +15,6 @@
         <file>scale.png</file>
         <file>grid.png</file>
         <file>zoom.png</file>
+        <file>paste.png</file>
     </qresource>
 </RCC>

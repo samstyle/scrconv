@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>559</width>
-    <height>351</height>
+    <width>557</width>
+    <height>349</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -50,6 +50,17 @@
         <property name="icon">
          <iconset resource="resources.qrc">
           <normaloff>:/open.png</normaloff>:/open.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="tbPaste">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="resources.qrc">
+          <normaloff>:/paste.png</normaloff>:/paste.png</iconset>
         </property>
        </widget>
       </item>

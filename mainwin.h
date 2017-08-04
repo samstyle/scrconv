@@ -3,6 +3,7 @@
 
 #include <ui_mainwin.h>
 #include <QtGui>
+#include <QClipboard>
 
 enum {
 	CONV_REAL=0,
@@ -54,9 +55,11 @@ class MWin : public QMainWindow {
 		QImage getSource();
 
 		QByteArray scr;
+		QClipboard* cbrd;
 
 	private slots:
 		void openFile();
+		void pasteImage();
 		void saveAni();
 		void saveScr();
 		void savePng();

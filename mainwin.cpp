@@ -407,6 +407,26 @@ void MWin::openFile() {
 	}
 }
 
+void MWin::pasteImage() {
+	const QMimeData* mime = cbrd->mimeData();
+	if (mime->hasImage()) {
+		gif.clear();
+		img = qvariant_cast<QImage>(mime->imageData());
+		ui.labSrc->dx = 0;
+		ui.labSrc->dy = 0;
+		isGif = false;
+		ui.spFrame->setEnabled(false);
+		ui.tbPlay->setEnabled(false);
+		ui.labFrame->setText(QString(" / %0").arg(gif.size() - 1));
+		ui.aSaveAni->setEnabled(false);
+		ui.aBatchScr->setEnabled(false);
+		chaZoomHW();
+		setWindowTitle(QString("GFXcon [ nonamed ]"));
+	} else {
+		QMessageBox::critical(this,"Error","Fail to paste image",QMessageBox::Ok);
+	}
+}
+
 void MWin::savePng() {
 	if (img.isNull()) return;
 	QString path = QFileDialog::getSaveFileName(this,"Save screen","","PNG fils (*.png)");
@@ -1086,7 +1106,7 @@ QImage rgb2img(QByteArray data) {
 
 //
 
-convMethod convTab[] = {
+static convMethod convTab[] = {
 	{CONV_SOLID, "Solid", doSolid, scr2img, NULL},
 	{CONV_TRITONE, "Tritone", doTritone, scr2img, NULL},
 	{CONV_TEXTURE, "Texture", doTexture, scr2img, NULL},
@@ -1176,6 +1196,8 @@ void MWin::convert() {
 MWin::MWin(QWidget* par):QMainWindow(par) {
 	ui.setupUi(this);
 
+	cbrd = QApplication::clipboard();
+
 	scw = 256 * 2;
 	sch = 192 * 2;
 
@@ -1225,6 +1247,7 @@ MWin::MWin(QWidget* par):QMainWindow(par) {
 	curFrame = 0;
 
 	connect(ui.tbOpen,SIGNAL(clicked()),this,SLOT(openFile()));
+	connect(ui.tbPaste,SIGNAL(clicked()),this,SLOT(pasteImage()));
 
 	connect(ui.aSaveScr,SIGNAL(triggered()),this,SLOT(saveScr()));
 	connect(ui.aSaveAni,SIGNAL(triggered()),this,SLOT(saveAni()));
@@ -1275,6 +1298,7 @@ void MWin::keyPressEvent(QKeyEvent* ev) {
 			case Qt::Key_2: ui.labSrc->setMag(0.5, 0.5); break;
 			case Qt::Key_3: ui.labSrc->setMag(0.3, 0.3); break;
 			case Qt::Key_4: ui.labSrc->setMag(0.25, 0.25); break;
+			case Qt::Key_V: pasteImage(); break;
 		}
 	} else if (ev->modifiers() & Qt::AltModifier) {
 		switch(ev->key()) {
