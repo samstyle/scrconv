@@ -366,11 +366,17 @@ QByteArray emptySprite(int dx, int dy) {
 
 // load-save
 
-void MWin::openFile() {
-	if (isPlaying) playGif();
-	QString path = QFileDialog::getOpenFileName(this,"Open image","","Images (*.jpg *.jpeg *.png *.bmp *.gif)");
-	if (path.isEmpty()) return;
-	QImageReader rd(path);
+int MWin::parseImage(QByteArray& data) {
+	QBuffer buf(&data);
+	buf.open(QIODevice::ReadOnly);
+	QImageReader rd(&buf);
+	int res = loadImage(rd);
+	buf.close();
+	return res;
+}
+
+int MWin::loadImage(QImageReader& rd) {
+	int res;
 	if (rd.canRead()) {
 		gif.clear();
 		curFrame = 0;
@@ -401,10 +407,21 @@ void MWin::openFile() {
 		ui.aSaveAni->setEnabled(isGif);
 		ui.aBatchScr->setEnabled(isGif);
 		chaZoomHW();
-		setWindowTitle(QString("GFXcon [ %0 ]").arg(path));
+		res = 1;
 	} else {
 		QMessageBox::critical(this,"Error","Fail to load image",QMessageBox::Ok);
+		res = 0;
 	}
+	return res;
+}
+
+void MWin::openFile() {
+	if (isPlaying) playGif();
+	QString path = QFileDialog::getOpenFileName(this,"Open image","","Images (*.jpg *.jpeg *.png *.bmp *.gif)");
+	if (path.isEmpty()) return;
+	QImageReader rd(path);
+	if (loadImage(rd))
+		setWindowTitle(QString("GFXcon [ %0 ]").arg(path));
 }
 
 void MWin::pasteImage() {
@@ -425,6 +442,20 @@ void MWin::pasteImage() {
 	} else {
 		QMessageBox::critical(this,"Error","Fail to paste image",QMessageBox::Ok);
 	}
+}
+
+void MWin::openUrl() {
+	QString path = QInputDialog::getText(this, "Input URL", "URL");
+	if (path.isEmpty()) return;
+	QUrl url = QUrl::fromEncoded(path.toLocal8Bit());
+	QNetworkRequest rq(url);
+	rply = mng.get(rq);
+}
+
+void MWin::downloaded(QNetworkReply* data) {
+	QByteArray arr = data->readAll();
+	if (parseImage(arr))
+		setWindowTitle(QString("GFXcon [ %0 ]").arg(data->url().toString()));
 }
 
 void MWin::savePng() {
@@ -1248,6 +1279,7 @@ MWin::MWin(QWidget* par):QMainWindow(par) {
 
 	connect(ui.tbOpen,SIGNAL(clicked()),this,SLOT(openFile()));
 	connect(ui.tbPaste,SIGNAL(clicked()),this,SLOT(pasteImage()));
+	connect(ui.tbUrl,SIGNAL(clicked()),this,SLOT(openUrl()));
 
 	connect(ui.aSaveScr,SIGNAL(triggered()),this,SLOT(saveScr()));
 	connect(ui.aSaveAni,SIGNAL(triggered()),this,SLOT(saveAni()));
@@ -1287,6 +1319,8 @@ MWin::MWin(QWidget* par):QMainWindow(par) {
 	connect(ui.triMin, SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetTMin()));
 
 	connect(ui.tbZoom, SIGNAL(triggered(QAction*)), this, SLOT(setZoom(QAction*)));
+
+	connect(&mng,SIGNAL(finished(QNetworkReply*)),this,SLOT(downloaded(QNetworkReply*)));
 
 //	ui.statusbar->showMessage(QString("Qt %0").arg(qVersion()));
 }

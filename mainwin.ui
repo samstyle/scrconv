@@ -47,6 +47,9 @@
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
        <widget class="QToolButton" name="tbOpen">
+        <property name="toolTip">
+         <string>Open file</string>
+        </property>
         <property name="icon">
          <iconset resource="resources.qrc">
           <normaloff>:/open.png</normaloff>:/open.png</iconset>
@@ -55,12 +58,29 @@
       </item>
       <item>
        <widget class="QToolButton" name="tbPaste">
+        <property name="toolTip">
+         <string>Paste image</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
         <property name="icon">
          <iconset resource="resources.qrc">
           <normaloff>:/paste.png</normaloff>:/paste.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="tbUrl">
+        <property name="toolTip">
+         <string>Open url</string>
+        </property>
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="resources.qrc">
+          <normaloff>:/web.png</normaloff>:/web.png</iconset>
         </property>
        </widget>
       </item>
@@ -79,6 +99,9 @@
       </item>
       <item>
        <widget class="QToolButton" name="tbSave">
+        <property name="toolTip">
+         <string>Save result</string>
+        </property>
         <property name="icon">
          <iconset resource="resources.qrc">
           <normaloff>:/save.png</normaloff>:/save.png</iconset>
@@ -216,6 +239,9 @@
       </item>
       <item>
        <widget class="QToolButton" name="tbSizeFit">
+        <property name="toolTip">
+         <string>Stretch</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
@@ -227,6 +253,9 @@
       </item>
       <item>
        <widget class="QToolButton" name="tbShowGrid">
+        <property name="toolTip">
+         <string>Show grid</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
@@ -241,6 +270,9 @@
       </item>
       <item>
        <widget class="QToolButton" name="tbZoom">
+        <property name="toolTip">
+         <string>Zoom result</string>
+        </property>
         <property name="text">
          <string>..</string>
         </property>

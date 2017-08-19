@@ -4,6 +4,8 @@
 #include <ui_mainwin.h>
 #include <QtGui>
 #include <QClipboard>
+#include <QNetworkReply>
+#include <QNetworkAccessManager>
 
 enum {
 	CONV_REAL=0,
@@ -57,9 +59,17 @@ class MWin : public QMainWindow {
 		QByteArray scr;
 		QClipboard* cbrd;
 
+		QNetworkAccessManager mng;
+		QNetworkReply* rply;
+
 	private slots:
 		void openFile();
 		void pasteImage();
+		void openUrl();
+		void downloaded(QNetworkReply*);
+		int loadImage(QImageReader&);
+		int parseImage(QByteArray&);
+
 		void saveAni();
 		void saveScr();
 		void savePng();

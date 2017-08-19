@@ -16,5 +16,6 @@
         <file>grid.png</file>
         <file>zoom.png</file>
         <file>paste.png</file>
+        <file>web.png</file>
     </qresource>
 </RCC>

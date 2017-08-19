@@ -3,9 +3,10 @@
 ######################################################################
 
 TEMPLATE = app
-TARGET = 
+TARGET =
 DEPENDPATH += .
 INCLUDEPATH += .
+QT += network
 
 # Input
 SOURCES += main.cpp \
