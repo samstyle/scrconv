@@ -25,6 +25,9 @@
     <height>360</height>
    </size>
   </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
   <property name="windowTitle">
    <string>GFXcon</string>
   </property>

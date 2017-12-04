@@ -415,9 +415,10 @@ int MWin::loadImage(QImageReader& rd) {
 	return res;
 }
 
-void MWin::openFile() {
+void MWin::openFile(QString path) {
 	if (isPlaying) playGif();
-	QString path = QFileDialog::getOpenFileName(this,"Open image","","Images (*.jpg *.jpeg *.png *.bmp *.gif)");
+	if (path.isEmpty())
+		path = QFileDialog::getOpenFileName(this,"Open image","","Images (*.jpg *.jpeg *.png *.bmp *.gif)");
 	if (path.isEmpty()) return;
 	QImageReader rd(path);
 	if (loadImage(rd))
@@ -426,6 +427,10 @@ void MWin::openFile() {
 
 void MWin::pasteImage() {
 	const QMimeData* mime = cbrd->mimeData();
+	pasteMime(mime);
+}
+
+void MWin::pasteMime(const QMimeData* mime) {
 	if (mime->hasImage()) {
 		gif.clear();
 		img = qvariant_cast<QImage>(mime->imageData());
@@ -1332,6 +1337,7 @@ void MWin::keyPressEvent(QKeyEvent* ev) {
 			case Qt::Key_2: ui.labSrc->setMag(0.5, 0.5); break;
 			case Qt::Key_3: ui.labSrc->setMag(0.3, 0.3); break;
 			case Qt::Key_4: ui.labSrc->setMag(0.25, 0.25); break;
+			case Qt::Key_O: openFile(); break;
 			case Qt::Key_V: pasteImage(); break;
 		}
 	} else if (ev->modifiers() & Qt::AltModifier) {
@@ -1352,4 +1358,16 @@ void MWin::keyPressEvent(QKeyEvent* ev) {
 			case Qt::Key_4: ui.labSrc->setMag(4.0, 4.0); break;
 		}
 	}
+}
+
+// drag'n'drop
+
+void MWin::dragEnterEvent(QDragEnterEvent* ev) {
+	ev->acceptProposedAction();
+}
+
+void MWin::dropEvent(QDropEvent* ev) {
+	const QMimeData* mime = ev->mimeData();
+	if (mime->hasUrls())
+		openFile(mime->urls().first().path());
 }

@@ -3,6 +3,7 @@
 
 #include <ui_mainwin.h>
 #include <QtGui>
+#include <QMimeData>
 #include <QClipboard>
 #include <QNetworkReply>
 #include <QNetworkAccessManager>
@@ -63,8 +64,9 @@ class MWin : public QMainWindow {
 		QNetworkReply* rply;
 
 	private slots:
-		void openFile();
+		void openFile(QString p = QString());
 		void pasteImage();
+		void pasteMime(const QMimeData*);
 		void openUrl();
 		void downloaded(QNetworkReply*);
 		int loadImage(QImageReader&);
@@ -103,6 +105,8 @@ class MWin : public QMainWindow {
 		void chaMode();
 	protected:
 		void keyPressEvent(QKeyEvent*);
+		void dragEnterEvent(QDragEnterEvent*);
+		void dropEvent(QDropEvent*);
 };
 
 #endif // MAINWIN_H
