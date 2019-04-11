@@ -957,6 +957,10 @@ QByteArray doTritone(QImage& src) {
 
 // texture
 
+int txdepth = 4;
+
+int txd_mask[] = {0x80,0xc0,0xe0,0xf0,0xf8};
+
 QByteArray doTexture(QImage& src) {
 	QByteArray res = emptyScreen();
 	int x,y,lev;
@@ -964,10 +968,17 @@ QByteArray doTexture(QImage& src) {
 	int ymax = src.height();
 	unsigned char mask = 0x80;
 	int adr = 0;
+	if (txdepth > 4) txdepth = 4;
+	if (txdepth < 0) txdepth = 0;
+	int txmask = txd_mask[txdepth];
+	int txbits = txmask ^ 0xf8;
+	int idx;
 	for (y = 0; y < ymax; y++) {
 		for (x = 0; x < xmax; x++) {
 			lev = qGray(src.pixel(x,y));
-			lev = texture_bin[(lev & 0xf8) | (y & 7)];
+			idx = (lev & txmask) | (y & 7);
+			if (lev & 0x80) idx |= txbits;
+			lev = texture_bin[idx];
 			if (lev & (0x80 >> (x & 7))) {
 				res[adr] = res[adr] | mask;
 			}
@@ -1192,6 +1203,7 @@ void MWin::convert() {
 		lev2 = ui.triMax->value();
 		trit = ui.cbTriType->itemData(ui.cbTriType->currentIndex()).toInt();
 		tinv = ui.cbInvertGrid->isChecked() ? 1 : 0;
+		txdepth = ui.texdepth->value();
 		convMethod* mtd = findMethod(convType);
 		if (mtd == NULL) {
 			dst = QImage(256, 192, QImage::Format_RGB888);
@@ -1314,6 +1326,7 @@ MWin::MWin(QWidget* par):QMainWindow(par) {
 	connect(ui.sbBlue,SIGNAL(valueChanged(int)),this,SLOT(convert()));
 	connect(ui.cbTriType,SIGNAL(currentIndexChanged(int)),this,SLOT(convert()));
 	connect(ui.cbInvertGrid,SIGNAL(stateChanged(int)), this, SLOT(convert()));
+	connect(ui.texdepth,SIGNAL(valueChanged(int)), this, SLOT(convert()));
 
 	connect(ui.brightLevel,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetBrg()));
 	connect(ui.contrast,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(resetCon()));
