@@ -1,5 +1,9 @@
 #include "mainwin.h"
 
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QInputDialog>
+
 struct convMethod {
 	int id;
 	QString name;
