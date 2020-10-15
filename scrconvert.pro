@@ -3,6 +3,7 @@
 ######################################################################
 
 TEMPLATE = app
+TARGET = scrconv
 DEPENDPATH += .
 INCLUDEPATH += .
 QT += core gui widgets network

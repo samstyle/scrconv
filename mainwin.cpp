@@ -12,7 +12,7 @@ struct convMethod {
 	void(*save)(QByteArray);
 };
 
-unsigned char texture_bin[] = {
+static unsigned char texture_bin[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x88, 0x00, 0x00, 0x00, 0x88, 0x00, 0x00, 0x00,
@@ -106,8 +106,60 @@ void MWin::playFrame() {
 
 // common
 
+double dmin(double a, double b) {
+	return (a < b) ? a : b;
+}
+
+double dmax(double a, double b) {
+	return (a < b) ? b : a;
+}
+
+static int hsv_tab[8] = {2, 6, 4, 4, 5, 1, 1, 3};
+
 int getCol(QRgb col) {
 	int res = 0;
+#if 1
+	double r = qRed(col) / 255.0;
+	double g = qGreen(col) / 255.0;
+	double b = qBlue(col) / 255.0;
+	int h;
+	double s,v;
+
+	double min = dmin(r, dmin(g, b));
+	double max = dmax(r, dmax(g, b));
+
+	if (max == min) {
+		h = 0;
+	} else if (max == r) {
+		if (g >= b) {
+			h = 60 * (g - b) / (max - min);
+		} else {
+			h = 60 * (g - b) / (max - min) + 360;
+		}
+	} else if (max == g) {
+		h = 60 * (b - r) / (max - min) + 120;
+	} else {
+		h = 60 * (r - g) / (max - min) + 240;
+	}
+	if (max == 0) {
+		s = 0;
+	} else {
+		s = 1 - (min / max);
+	}
+	v = max;
+
+	if (s < 0.3) {
+		if (v < 0.3) res = 0;
+		else if (v < 0.8) res = 7;
+		else res = 15;
+	} else if (v < 0.3) {
+		res = 0;
+	} else {
+		col = hsv_tab[h / 45];
+		if (v > 0.8)
+			col |= 8;
+	}
+#else
 	if (qBlue(col) > 80) res |= 1;
 	if (qRed(col) > 80) res |= 2;
 	if (qGreen(col) > 80) res |= 4;
@@ -115,12 +167,14 @@ int getCol(QRgb col) {
 	brg += (qRed(col) > 160) ? 1 : 0;
 	brg += (qGreen(col) > 160) ? 1 : 0;
 	if (brg > 1) res |= 8;
+#endif
 	return res;
 }
 
 unsigned char getCols(QImage& src, int x, int y, QRgb& inkcol, QRgb& papcol, int lmask = 0xff, int wid = 8) {
 	QMap<QRgb,int> map;
 	QRgb col;
+	QRgb tcol;
 	int lin,bit;
 	if (wid < 8) wid = 8;
 	if (wid > 256) wid = 256;
@@ -128,7 +182,8 @@ unsigned char getCols(QImage& src, int x, int y, QRgb& inkcol, QRgb& papcol, int
 	for (lin = 0; lin < wid; lin++) {
 		if (lmask & 0x80) {
 			for (bit = 0; bit < 8; bit++) {
-				col = src.pixel(x + bit, y + lin);
+				tcol = src.pixel(x + bit, y + lin);
+				col = qRgb(qRed(tcol) & 0xf0, qGreen(tcol) & 0xf0, qBlue(tcol) & 0xf0);
 				map[col]++;
 			}
 		}
